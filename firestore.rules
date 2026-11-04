@@ -1,0 +1,80 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Default-deny catch-all rule (Pillar 1)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper Primitives (Pillars 2, 3, 4)
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'ahammouch405@gmail.com' ||
+        request.auth.token.email == 'rachid.bennani@usmba.ac.ma'
+      );
+    }
+
+    function isProfessor() {
+      return isSignedIn() && exists(/databases/$(database)/documents/professors/$(request.auth.uid));
+    }
+
+    // Public Topics Catalog
+    match /topics/{topicId} {
+      allow read: if isValidId(topicId);
+      allow write: if isAdmin();
+    }
+
+    // User Accounts & Profiles
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      // Users can register as candidate, but CANNOT self-elevate role
+      allow create: if isSignedIn() && request.auth.uid == userId && 
+        request.resource.data.role == 'candidate';
+      allow update: if isSignedIn() && (
+        isAdmin() || 
+        (request.auth.uid == userId && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Candidate Reusable Profile
+    match /candidateProfiles/{userId} {
+      allow read, write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+    }
+
+    // Independent Applications
+    match /applications/{applicationId} {
+      allow read: if isSignedIn() && (
+        resource.data.candidateId == request.auth.uid ||
+        resource.data.candidateEmail == request.auth.token.email ||
+        isAdmin() ||
+        (isProfessor() && resource.data.professorEmail == request.auth.token.email)
+      );
+
+      allow create: if isSignedIn() && 
+        request.resource.data.candidateId == request.auth.uid;
+
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        // Candidate updating their draft or replacing requested piece
+        (resource.data.candidateId == request.auth.uid && (
+          resource.data.status == 'draft' || 
+          resource.data.status == 'correction_requested'
+        )) ||
+        // Professor grading or requesting piece correction on their assigned topic
+        (isProfessor() && resource.data.professorEmail == request.auth.token.email)
+      );
+
+      allow delete: if isAdmin();
+    }
+  }
+}

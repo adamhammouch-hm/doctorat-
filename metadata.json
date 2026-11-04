@@ -1,0 +1,6 @@
+{
+  "name": "USMBA Doctoral Cycle Platform (GCD)",
+  "description": "Plateforme moderne de Gestion du Cycle Doctoral pour l'Université Sidi Mohamed Ben Abdellah de Fès (USMBA).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
