@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { ThesisTopic, Language } from '../types';
+import { ThesisTopic, Language, ValidationStepStatus } from '../types';
 import { getTranslation } from '../services/i18n';
 import { 
   Building2, 
@@ -48,18 +48,20 @@ export const TopicCard: React.FC<TopicCardProps> = ({
   const displayDomain = isRtl && topic.domainAr ? topic.domainAr : topic.domain;
 
   // Minimalist validation step indicator
-  const renderMiniStep = (label: string, status: 'valid' | 'pending' | 'rejected') => {
+  const renderMiniStep = (label: string, status: ValidationStepStatus) => {
     return (
       <span 
         key={label}
         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border ${
           status === 'valid'
             ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+            : status === 'revision_requested'
+            ? 'bg-orange-50 text-orange-800 border-orange-200'
             : status === 'pending'
             ? 'bg-amber-50 text-amber-800 border-amber-200'
             : 'bg-rose-50 text-rose-800 border-rose-200'
         }`}
-        title={`${label} : ${status === 'valid' ? 'Validée' : 'En attente'}`}
+        title={`${label} : ${status === 'valid' ? 'Validée' : status === 'revision_requested' ? 'Modifications demandées' : status === 'pending' ? 'En attente' : 'Non retenue'}`}
       >
         {status === 'valid' ? (
           <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />

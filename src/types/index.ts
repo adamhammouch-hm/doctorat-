@@ -1,12 +1,22 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
- * Type definitions for USMBA Doctoral Platform (GCD Refonte) — Phase 2
+ * Type definitions for USMBA Doctoral Platform (Doctorat USMBA)
+ * Exact 3 profiles:
+ * 1. candidate (Candidat)
+ * 2. thesis_director (Directeur de thèse / Encadrant unifié)
+ * 3. structure_director (Directeur de structure - Labo / CEDoc / Pôle)
  */
 
 export type Language = 'fr' | 'ar';
 
-export type AppRole = 'candidate' | 'professor' | 'admin';
+/**
+ * EXACT THREE PROFILES REQUIRED:
+ * - candidate: Candidat au doctorat
+ * - thesis_director: Directeur de thèse & Encadrant (rôle unique)
+ * - structure_director: Directeur de structure (Laboratoire, CEDoc, Pôle doctoral)
+ */
+export type AppRole = 'candidate' | 'thesis_director' | 'structure_director';
 
 export interface AppUser {
   id: string;
@@ -16,6 +26,7 @@ export interface AppUser {
   title?: string;
   department?: string;
   institution?: string;
+  laboratory?: string;
 }
 
 export interface AuthAccount {
@@ -27,11 +38,13 @@ export interface AuthAccount {
   createdAt: string;
   title?: string;
   department?: string;
+  institution?: string;
+  laboratory?: string;
   resetToken?: string;
   resetTokenExpiry?: number;
 }
 
-export type ValidationStepStatus = 'valid' | 'pending' | 'rejected';
+export type ValidationStepStatus = 'valid' | 'pending' | 'revision_requested' | 'rejected';
 
 export interface ValidationStep {
   name: string;
@@ -47,6 +60,27 @@ export interface ValidationWorkflow {
   pole: ValidationStep;      // Présidence / Pôle Doctoral central
 }
 
+/**
+ * Internal Electronic Signature for Thesis Topics & Official Decisions
+ * Note: Internal university electronic validation stamp, not 3P eIDAS certified.
+ */
+export interface InternalElectronicSignature {
+  signerName: string;
+  signerEmail: string;
+  signerRole: string; // e.g. "Directeur de Structure (CEDoc)"
+  signedAt: string;
+  signatureFingerprint: string; // SHA-256 integrity hash simulation
+  comments?: string;
+}
+
+export type TopicWorkflowStatus = 
+  | 'draft'               // En cours de rédaction par le Directeur de thèse
+  | 'submitted'           // Soumis au Directeur de structure pour validation
+  | 'revision_requested'  // Modifications demandées par le Directeur de structure
+  | 'approved_signed'     // Validé et signé électroniquement par le Directeur de structure
+  | 'published'           // Publié officiellement au catalogue des candidats
+  | 'rejected';           // Rejeté avec motif motivé
+
 export type TopicAvailability = 'open' | 'closed' | 'under_review';
 
 export interface ThesisTopic {
@@ -59,9 +93,10 @@ export interface ThesisTopic {
   academicYear: string;
   domain: string;
   domainAr?: string;
+  specialty?: string;
   professorName: string;
   professorTitle: string;
-  professorEmail?: string;
+  professorEmail: string;
   laboratory: string; // Structure de recherche
   institution: string; // Établissement (ex: Faculté des Sciences et Techniques)
   eligibilityCriteria: string[];
@@ -71,8 +106,16 @@ export interface ThesisTopic {
   applicantsCount: number;
   submissionDeadline: string;
   status: TopicAvailability;
+  workflowStatus: TopicWorkflowStatus;
   workflow: ValidationWorkflow;
-  isOfficialPublication: boolean; // Must be true & status 'open' to accept applications
+  electronicSignature?: InternalElectronicSignature;
+  revisionRequests?: {
+    date: string;
+    requestedBy: string;
+    message: string;
+    resolved: boolean;
+  }[];
+  isOfficialPublication: boolean; // Must be true & approved_signed/published to accept applications
 }
 
 export interface TopicFilters {
@@ -92,22 +135,40 @@ export interface CartConfig {
 
 /**
  * Official application statuses required for doctoral management:
- * - draft: Brouillon en cours de saisie
- * - incomplete: Dossier incomplet (manque de pièces obligatoires)
- * - pending_review: En cours d'examen par l'encadrant et le CEDoc
- * - correction_requested: Correction d'une ou plusieurs pièces demandée
- * - waitlisted: Classé sur Liste d'Attente
- * - accepted: Admis sur Liste Principale
- * - rejected: Non retenu (avec motif obligatoire motivé)
+ * 1. draft: Brouillon
+ * 2. incomplete: Dossier incomplet
+ * 3. pending_verification: En attente de vérification
+ * 4. correction_requested: Correction demandée
+ * 5. complete: Dossier complet
+ * 6. under_review: En cours d'examen
+ * 7. pending_decision: En attente de décision
+ * 8. admitted: Admis (Liste Principale)
+ * 9. rejected: Rejeté (Motif obligatoire)
+ * 10. waitlist: Liste d'attente
+ * 11. registration_pending: Inscription à effectuer
+ * 12. registration_confirmed: Inscription confirmée
+ * 13. deadline_exceeded: Délai d'inscription dépassé
+ * 14. admission_cancelled: Admission annulée
  */
 export type ApplicationStatus = 
   | 'draft'
   | 'incomplete'
-  | 'pending_review'
+  | 'pending_verification'
   | 'correction_requested'
-  | 'waitlisted'
+  | 'complete'
+  | 'under_review'
+  | 'pending_decision'
+  | 'admitted'
+  | 'rejected'
+  | 'waitlist'
+  | 'registration_pending'
+  | 'registration_confirmed'
+  | 'deadline_exceeded'
+  | 'admission_cancelled'
+  // Backward compatibility aliases
   | 'accepted'
-  | 'rejected';
+  | 'waitlisted'
+  | 'pending_review';
 
 export type DocumentCategory = 
   | 'cin' 
@@ -126,8 +187,10 @@ export interface ApplicationDocument {
   fileType?: 'pdf' | 'image' | 'multi_image';
   status: 'valid' | 'needs_correction' | 'pending';
   note?: string;
-  pages?: string[]; // Base64 data URLs for camera captures or page bundles
+  pages?: string[]; // Base64 or cloud storage URL references
   uploadedAt?: string;
+  storageRef?: string; // Local storage reference or IndexedDB document id
+  isStoredInIndexedDb?: boolean;
 }
 
 export interface ApplicationAuditEntry {
@@ -140,13 +203,10 @@ export interface ApplicationAuditEntry {
 
 /**
  * Reusable Candidate Profile
- * Allows doctoral applicants to define their personal, civil, and academic
- * background once and reuse it across multiple thesis topics without retyping.
  */
 export interface CandidateProfile {
   id: string;
   userId: string;
-  // Identité civile
   firstName: string;
   lastName: string;
   firstNameAr?: string;
@@ -203,7 +263,6 @@ export interface CandidateApplication {
   masterGrade: number;
   masterMention: string;
   pfeTitle: string;
-  // Specific motivation
   statementOfPurpose?: string;
   scientificAlignment?: string;
   submissionDate: string;
@@ -211,11 +270,13 @@ export interface CandidateApplication {
   isDraft?: boolean;
   draftStep?: number;
   correctionMessage?: string;
-  rejectionReason?: string; // Obligatoire lors du rejet
-  waitlistRank?: number;
+  rejectionReason?: string; // Mandatory on rejection
+  waitlistRank?: number;    // Rank on waitlist
+  officialRanking?: number; // Merit ranking by thesis director
   decisionDate?: string;
   decisionBy?: string;
-  scientificOpinion?: ScientificOpinion; // Avis scientifique distinct de la décision administrative
+  registrationDeadline?: string; // e.g. "2024-12-05T23:59:59"
+  scientificOpinion?: ScientificOpinion;
   documents: ApplicationDocument[];
   history: ApplicationAuditEntry[];
   physicalReception?: {
@@ -238,15 +299,24 @@ export interface CinOcrResult {
 
 export interface CampaignConfig {
   id: string;
-  academicYear: string; // e.g. "2024/2025"
+  academicYear: string;
   title: string;
   openingDate: string;
   closingDate: string;
   deliberationDate: string;
   resultsDate: string;
+  registrationDeadline: string; // Common registration deadline
+  registrationDaysAllowed: number; // e.g. 10 business days for waitlist promoted candidate
   physicalDepositDeadline: string;
   status: 'active' | 'upcoming' | 'closed';
   maxApplicationsPerCandidate: number;
+  deadlineHistory?: {
+    date: string;
+    previousDeadline: string;
+    newDeadline: string;
+    reason: string;
+    modifiedBy: string;
+  }[];
 }
 
 export interface InstitutionConfig {
@@ -274,7 +344,7 @@ export interface RequiredDocumentConfig {
   label: string;
   description: string;
   mandatory: boolean;
-  allowedFormats: string[]; // e.g. ['pdf', 'jpg', 'png']
+  allowedFormats: string[];
   maxSizeMb: number;
 }
 
@@ -284,6 +354,8 @@ export type NotificationType =
   | 'decision' 
   | 'deadline' 
   | 'validation' 
+  | 'waitlist_proposal'
+  | 'admission_cancelled'
   | 'security';
 
 export interface AppNotification {
@@ -302,27 +374,27 @@ export interface AppNotification {
 }
 
 /**
- * Future Module Extension Stubs (Prepared for next phases without breaking existing workflows)
+ * Automatic Waitlist Promotion Proposal
+ * Created when a candidate's registration deadline expires.
+ * Requires explicit confirmation by the Structure Director.
  */
-export interface ReRegistrationRequest {
+export interface WaitlistPromotionProposal {
   id: string;
-  candidateId: string;
   topicId: string;
-  yearOfDoctorate: number; // 2, 3, 4 (dérogatoire)
-  academicYear: string;
-  progressReportSummary: string;
-  supervisorApproval: boolean;
-  cedocApproval: boolean;
-  submittedAt: string;
-}
-
-export interface DefenseRequest {
-  id: string;
-  candidateId: string;
-  topicId: string;
-  articlesPublishedCount: number;
-  communicationsCount: number;
-  preReviewers: string[];
-  defenseStatus: 'draft' | 'under_review' | 'authorized' | 'completed';
-  defenseDate?: string;
+  topicCode: string;
+  topicTitle: string;
+  cancelledApplicationId: string;
+  cancelledCandidateName: string;
+  cancelledCandidateEmail: string;
+  cancelledReason: string;
+  cancelledAt: string;
+  proposedApplicationId: string;
+  proposedCandidateName: string;
+  proposedCandidateEmail: string;
+  proposedWaitlistRank: number;
+  status: 'pending_director_confirmation' | 'confirmed' | 'dismissed';
+  newRegistrationDeadline: string;
+  directorNotes?: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
 }

@@ -7,13 +7,13 @@
 
 import { AppNotification, AppRole, NotificationType } from '../types';
 
-const NOTIFICATIONS_STORAGE_KEY = 'usmba_notifications_v2';
+const NOTIFICATIONS_STORAGE_KEY = 'usmba_notifications_v3';
 
 const INITIAL_DEMO_NOTIFICATIONS: AppNotification[] = [
   {
     id: 'notif-001',
-    recipientEmail: 'karim.benali@usmba.ac.ma',
-    recipientRole: 'professor',
+    recipientEmail: 'directeur.these.test@usmba.ma',
+    recipientRole: 'thesis_director',
     title: 'Nouvelle candidature reçue',
     titleAr: 'تم استلام طلب ترشيح جديد',
     message: 'Le candidat Youssef El Amrani a soumis un dossier pour le sujet FST-LISIA-24-01.',
@@ -26,8 +26,8 @@ const INITIAL_DEMO_NOTIFICATIONS: AppNotification[] = [
   },
   {
     id: 'notif-002',
-    recipientEmail: 'karim.benali@usmba.ac.ma',
-    recipientRole: 'professor',
+    recipientEmail: 'directeur.these.test@usmba.ma',
+    recipientRole: 'thesis_director',
     title: 'Pièce en attente de vérification',
     titleAr: 'وثيقة في انتظار التحقق',
     message: 'Salma Bennani (app-2024-002) a un dossier marqué avec demande de correction sur les relevés de notes.',
@@ -40,25 +40,25 @@ const INITIAL_DEMO_NOTIFICATIONS: AppNotification[] = [
   },
   {
     id: 'notif-003',
-    recipientEmail: 'youssef.elamrani@etu.usmba.ac.ma',
+    recipientEmail: 'candidat.test@usmba.ma',
     recipientRole: 'candidate',
-    title: 'Dossier de candidature enregistré',
-    titleAr: 'تم تسجيل ملف الترشيح',
-    message: 'Votre candidature pour "Arabic OCR using AI" a été reçue et transmise au Pr. Karim Benali.',
-    messageAr: 'تم استلام ترشيحك لموضوع التعرف الضوئي وتحويله إلى الأستاذ كريم بنعلي.',
-    type: 'submission',
-    createdAt: '2024-10-18 14:32',
-    read: true,
+    title: 'Félicitations : Vous êtes officiellement admis au Doctorat USMBA !',
+    titleAr: 'تهانينا: تم قبولكم في سلك الدكتوراه بجامعة سيدي محمد بن عبد الله',
+    message: 'Votre candidature pour "Arabic OCR using AI" a été retenue sur Liste Principale. Pensez à finaliser votre inscription avant la date limite.',
+    messageAr: 'تم قبول ترشيحك لموضوع التعرف الضوئي في اللائحة الرئيسية.',
+    type: 'decision',
+    createdAt: '2024-10-25 11:00',
+    read: false,
     relatedApplicationId: 'app-2024-001',
   },
   {
     id: 'notif-004',
-    recipientEmail: 'rachid.bennani@usmba.ac.ma',
-    recipientRole: 'admin',
-    title: 'Ouverture de la session de sélection',
-    titleAr: 'افتتاح دورة الانتقاء',
-    message: 'Campagne doctorale 2024/2025 active. 5 dossiers soumis, 1 admis physique enregistré.',
-    messageAr: 'حملة الدكتوراه 2024/2025 نشطة. تم تسجيل 5 ملفات وإيداع مادي واحد.',
+    recipientEmail: 'directeur.structure.test@usmba.ma',
+    recipientRole: 'structure_director',
+    title: 'Campagne d’admission active & Suivi des délibérations',
+    titleAr: 'حملة الانتقاء نشطة وتتبع المداولات',
+    message: 'Campagne doctorale 2024/2025 active. 5 dossiers soumis, propositions de repêchage disponibles.',
+    messageAr: 'حملة الدكتوراه 2024/2025 نشطة.',
     type: 'deadline',
     createdAt: '2024-10-27 08:00',
     read: false,
@@ -131,6 +131,23 @@ export const NotificationService = {
     return newNotif;
   },
 
+  /**
+   * Alias for createNotification
+   */
+  send(data: {
+    recipientEmail: string;
+    recipientRole?: AppRole;
+    title: string;
+    titleAr?: string;
+    message: string;
+    messageAr?: string;
+    type: NotificationType;
+    relatedApplicationId?: string;
+    relatedTopicId?: string;
+  }): AppNotification {
+    return this.createNotification(data);
+  },
+
   markAsRead(notificationId: string): void {
     const all = this.getAll();
     const index = all.findIndex((n) => n.id === notificationId);
@@ -159,8 +176,8 @@ export const NotificationService = {
   getSmtpStatus() {
     return {
       connected: false,
-      provider: 'Aucun (Envoi simulé localement)',
-      notice: 'Service SMTP externe non configuré. Les alertes sont générées et consultables directement dans le Centre de Notifications interne.',
+      provider: 'Aucun (Envoi in-app actif · SMTP externe non branché)',
+      notice: 'Service SMTP externe non configuré. Les alertes sont délivrées directement dans le Centre de Notifications interne.',
     };
   },
 };

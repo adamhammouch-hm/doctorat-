@@ -47,7 +47,16 @@ export const DEMO_TOPICS: ThesisTopic[] = [
     applicantsCount: 2, // As documented in guide screenshot page 17
     submissionDeadline: '2024-11-20',
     status: 'open',
+    workflowStatus: 'approved_signed',
     isOfficialPublication: true,
+    electronicSignature: {
+      signerName: 'Pr. Mostafa Bennani',
+      signerEmail: 'directeur.structure.test@usmba.ma',
+      signerRole: 'Directeur du CEDoc Sciences & Technologies',
+      signedAt: '28/08/2024 11:42',
+      signatureFingerprint: 'SHA256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069',
+      comments: 'Sujet doctoral validé et signé pour la session académique 2024/2025.',
+    },
     workflow: {
       structure: {
         name: 'Laboratoire LISIA',
@@ -99,6 +108,7 @@ export const DEMO_TOPICS: ThesisTopic[] = [
     applicantsCount: 1,
     submissionDeadline: '2024-11-22',
     status: 'open',
+    workflowStatus: 'approved_signed',
     isOfficialPublication: true,
     workflow: {
       structure: {
@@ -148,6 +158,7 @@ export const DEMO_TOPICS: ThesisTopic[] = [
     applicantsCount: 3,
     submissionDeadline: '2024-11-25',
     status: 'open',
+    workflowStatus: 'approved_signed',
     isOfficialPublication: true,
     workflow: {
       structure: { name: 'Laboratoire LISIA', status: 'valid', date: '18/08/2024' },
@@ -182,6 +193,7 @@ export const DEMO_TOPICS: ThesisTopic[] = [
     applicantsCount: 1,
     submissionDeadline: '2024-11-20',
     status: 'open',
+    workflowStatus: 'approved_signed',
     isOfficialPublication: true,
     workflow: {
       structure: { name: 'Laboratoire LIMII', status: 'valid', date: '15/08/2024' },
@@ -216,6 +228,7 @@ export const DEMO_TOPICS: ThesisTopic[] = [
     applicantsCount: 4,
     submissionDeadline: '2024-11-28',
     status: 'open',
+    workflowStatus: 'approved_signed',
     isOfficialPublication: true,
     workflow: {
       structure: { name: 'Laboratoire Géorisques', status: 'valid', date: '16/08/2024' },
@@ -250,6 +263,7 @@ export const DEMO_TOPICS: ThesisTopic[] = [
     applicantsCount: 2,
     submissionDeadline: '2024-11-30',
     status: 'open',
+    workflowStatus: 'approved_signed',
     isOfficialPublication: true,
     workflow: {
       structure: { name: 'Laboratoire LREAG', status: 'valid', date: '14/08/2024' },
@@ -284,6 +298,7 @@ export const DEMO_TOPICS: ThesisTopic[] = [
     applicantsCount: 3,
     submissionDeadline: '2024-11-24',
     status: 'open',
+    workflowStatus: 'approved_signed',
     isOfficialPublication: true,
     workflow: {
       structure: { name: 'Laboratoire Histoire & Patrimoine', status: 'valid', date: '12/08/2024' },
@@ -318,6 +333,7 @@ export const DEMO_TOPICS: ThesisTopic[] = [
     applicantsCount: 2,
     submissionDeadline: '2024-11-26',
     status: 'open',
+    workflowStatus: 'approved_signed',
     isOfficialPublication: true,
     workflow: {
       structure: { name: 'Laboratoire Bioressources', status: 'valid', date: '19/08/2024' },
@@ -348,15 +364,300 @@ export const DEMO_TOPICS: ThesisTopic[] = [
     spotsAvailable: 1,
     applicantsCount: 1,
     submissionDeadline: '2024-12-15',
-    status: 'under_review', // Demonstrates non-published state
-    isOfficialPublication: false, // Cannot be applied to yet
+    status: 'under_review',
+    workflowStatus: 'submitted',
+    isOfficialPublication: false,
     workflow: {
       structure: { name: 'Laboratoire LISIA', status: 'valid', date: '17/08/2024' },
       centre: { name: 'CEDoc Sciences & Techniques', status: 'valid', date: '17/08/2024' },
-      pole: { name: 'Pôle Doctoral USMBA', status: 'pending', comments: 'En attente de confirmation budgétaire' },
+      pole: { name: 'Pôle Doctoral USMBA', status: 'pending', comments: 'En attente d’arbitrage et signature par le Directeur de structure' },
+    },
+  },
+  {
+    id: 'usmba-topic-2024-010',
+    code: 'FST-LISIA-24-10',
+    title: 'Apprentissage Fédéré pour la Confidentialité des Données Médicales Hospitalières',
+    titleAr: 'التعلم الموحد لحماية سرية البيانات الطبية الاستشفائية',
+    scientificDescription:
+      'Développement d’algorithmes Federated Learning sécurisés et robustes aux attaques d’empoisonnement, appliqués à l’analyse collaborative d’images médicales entre plusieurs centres hospitaliers universitaires régionaux sans partage direct des dossiers patients.',
+    scientificDescriptionAr:
+      'تطوير خوارزميات التعلم الموحد الآمن والمقاوم للهجمات، لتحليل الصور الطبية بتعاون المستشفيات الجامعية دون المساس بخصوصية المرضى.',
+    academicYear: '2024/2025',
+    domain: 'Informatique & Intelligence Artificielle',
+    domainAr: 'المعلوميات والذكاء الاصطناعي',
+    professorName: 'Pr. Karim Benali',
+    professorTitle: 'Professeur de l’Enseignement Supérieur (PES)',
+    professorEmail: 'karim.benali@usmba.ac.ma',
+    laboratory: 'Laboratoire Systèmes Intelligents & Applications (LISIA)',
+    institution: 'Faculté des Sciences et Techniques (FST) de Fès',
+    eligibilityCriteria: ['Master ou Ingénieur en Informatique ou Cybersécurité', 'Bonne maîtrise de Python et PySyft / Flower'],
+    requiredSkills: ['Federated Learning', 'Differential Privacy', 'PyTorch / Flower', 'Sécurité des données'],
+    fundingType: 'projet_recherche',
+    spotsAvailable: 1,
+    applicantsCount: 0,
+    submissionDeadline: '2024-12-20',
+    status: 'under_review',
+    workflowStatus: 'revision_requested',
+    isOfficialPublication: false,
+    revisionRequests: [
+      {
+        date: '12/09/2024 10:30',
+        requestedBy: 'Pr. Mostafa Bennani (Directeur du CEDoc)',
+        message: 'Prière de préciser les protocoles de chiffrement homomorphe envisagés et de joindre l’accord de principe du comité d’éthique du CHU Hassan II de Fès avant validation définitive.',
+        resolved: false,
+      },
+    ],
+    workflow: {
+      structure: { name: 'Laboratoire LISIA', status: 'valid', date: '01/09/2024' },
+      centre: { name: 'CEDoc Sciences & Techniques', status: 'revision_requested', date: '12/09/2024', comments: 'Précisions déontologiques demandées' },
+      pole: { name: 'Pôle Doctoral USMBA', status: 'pending' },
     },
   },
 ];
+
+const TOPICS_STORAGE_KEY = 'usmba_thesis_topics_v3';
+
+/**
+ * Service de gestion du cycle de vie des sujets de thèse :
+ * Création, modification, soumission, révision et signature électronique
+ */
+export const ThesisTopicService = {
+  getTopics(): ThesisTopic[] {
+    try {
+      const raw = localStorage.getItem(TOPICS_STORAGE_KEY);
+      if (!raw) {
+        this.saveTopics(DEMO_TOPICS);
+        return DEMO_TOPICS;
+      }
+      const parsed: ThesisTopic[] = JSON.parse(raw);
+      // Ensure demo topics exist
+      let updated = false;
+      for (const d of DEMO_TOPICS) {
+        if (!parsed.some((p) => p.id === d.id)) {
+          parsed.push(d);
+          updated = true;
+        }
+      }
+      if (updated) this.saveTopics(parsed);
+      return parsed;
+    } catch {
+      return DEMO_TOPICS;
+    }
+  },
+
+  saveTopics(topics: ThesisTopic[]): void {
+    try {
+      localStorage.setItem(TOPICS_STORAGE_KEY, JSON.stringify(topics));
+    } catch (e) {
+      console.warn('Failed to save thesis topics', e);
+    }
+  },
+
+  createTopic(
+    topicData: Partial<ThesisTopic>,
+    author: { name: string; email: string; title?: string; institution?: string; laboratory?: string }
+  ): ThesisTopic {
+    const topics = this.getTopics();
+    const count = topics.length + 1;
+    const code = `FST-LISIA-24-${count < 10 ? '0' + count : count}`;
+
+    const newTopic: ThesisTopic = {
+      id: `topic-${Date.now()}`,
+      code,
+      title: topicData.title || 'Nouveau sujet doctoral',
+      titleAr: topicData.titleAr || '',
+      scientificDescription: topicData.scientificDescription || '',
+      scientificDescriptionAr: topicData.scientificDescriptionAr || '',
+      academicYear: topicData.academicYear || '2024/2025',
+      domain: topicData.domain || 'Informatique & Intelligence Artificielle',
+      domainAr: topicData.domainAr || 'المعلوميات والذكاء الاصطناعي',
+      specialty: topicData.specialty || 'Intelligence Artificielle',
+      professorName: author.name,
+      professorTitle: author.title || 'Professeur de l’Enseignement Supérieur (PES)',
+      professorEmail: author.email,
+      laboratory: author.laboratory || topicData.laboratory || 'Laboratoire Systèmes Intelligents & Applications (LISIA)',
+      institution: author.institution || topicData.institution || 'Faculté des Sciences et Techniques (FST) de Fès',
+      eligibilityCriteria: topicData.eligibilityCriteria && topicData.eligibilityCriteria.length > 0
+        ? topicData.eligibilityCriteria
+        : ['Master de recherche ou Diplôme d’Ingénieur d’État dans la discipline'],
+      requiredSkills: topicData.requiredSkills && topicData.requiredSkills.length > 0
+        ? topicData.requiredSkills
+        : ['Méthodologie de recherche', 'Analyse de données'],
+      fundingType: topicData.fundingType || 'projet_recherche',
+      spotsAvailable: topicData.spotsAvailable || 1,
+      applicantsCount: 0,
+      submissionDeadline: topicData.submissionDeadline || '2024-12-15',
+      status: 'under_review',
+      workflowStatus: 'submitted',
+      isOfficialPublication: false,
+      workflow: {
+        structure: { name: topicData.laboratory || author.laboratory || 'Laboratoire de recherche', status: 'valid', date: new Date().toLocaleDateString('fr-FR') },
+        centre: { name: 'CEDoc Sciences & Technologies', status: 'pending' },
+        pole: { name: 'Pôle Doctoral USMBA', status: 'pending' },
+      },
+    };
+
+    topics.unshift(newTopic);
+    this.saveTopics(topics);
+
+    NotificationService.send({
+      recipientEmail: 'directeur.structure.test@usmba.ma',
+      recipientRole: 'structure_director',
+      type: 'validation',
+      title: `Nouveau sujet soumis pour signature (${newTopic.code})`,
+      message: `${author.name} a créé et soumis le sujet "${newTopic.title}" à votre arbitrage.`,
+      relatedTopicId: newTopic.id,
+    });
+
+    return newTopic;
+  },
+
+  updateTopic(
+    topicId: string,
+    updates: Partial<ThesisTopic>,
+    editorName: string
+  ): ThesisTopic | null {
+    const topics = this.getTopics();
+    const index = topics.findIndex((t) => t.id === topicId);
+    if (index === -1) return null;
+
+    const current = topics[index];
+    const isRevision = current.workflowStatus === 'revision_requested';
+
+    const updated: ThesisTopic = {
+      ...current,
+      ...updates,
+      // If was revision_requested and corrected, re-submit
+      workflowStatus: isRevision ? 'submitted' : current.workflowStatus,
+    };
+
+    topics[index] = updated;
+    this.saveTopics(topics);
+
+    if (isRevision) {
+      NotificationService.send({
+        recipientEmail: 'directeur.structure.test@usmba.ma',
+        recipientRole: 'structure_director',
+        type: 'validation',
+        title: `Sujet révisé et re-soumis (${updated.code})`,
+        message: `${editorName} a appliqué les corrections demandées sur le sujet "${updated.title}" et l'a re-soumis.`,
+        relatedTopicId: updated.id,
+      });
+    }
+
+    return updated;
+  },
+
+  requestTopicRevision(topicId: string, message: string, reviewerName: string): ThesisTopic | null {
+    const topics = this.getTopics();
+    const index = topics.findIndex((t) => t.id === topicId);
+    if (index === -1) return null;
+
+    const current = topics[index];
+    const revisions = current.revisionRequests || [];
+    revisions.push({
+      date: new Date().toLocaleString('fr-FR'),
+      requestedBy: reviewerName,
+      message,
+      resolved: false,
+    });
+
+    const updated: ThesisTopic = {
+      ...current,
+      workflowStatus: 'revision_requested',
+      revisionRequests: revisions,
+    };
+
+    topics[index] = updated;
+    this.saveTopics(topics);
+
+    NotificationService.send({
+      recipientEmail: current.professorEmail,
+      recipientRole: 'thesis_director',
+      type: 'correction',
+      title: `Modifications demandées sur votre sujet (${current.code})`,
+      message: `${reviewerName} a demandé des modifications avant validation : "${message}"`,
+      relatedTopicId: current.id,
+    });
+
+    return updated;
+  },
+
+  signAndApproveTopic(
+    topicId: string,
+    signer: { name: string; email: string; role: string },
+    comments?: string
+  ): ThesisTopic | null {
+    const topics = this.getTopics();
+    const index = topics.findIndex((t) => t.id === topicId);
+    if (index === -1) return null;
+
+    const current = topics[index];
+    const fingerprint = 'SHA256:' + Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+
+    const updated: ThesisTopic = {
+      ...current,
+      workflowStatus: 'approved_signed',
+      status: 'open',
+      isOfficialPublication: true,
+      electronicSignature: {
+        signerName: signer.name,
+        signerEmail: signer.email,
+        signerRole: signer.role,
+        signedAt: new Date().toLocaleString('fr-FR'),
+        signatureFingerprint: fingerprint,
+        comments: comments || 'Sujet doctoral validé, signé électroniquement et publié au catalogue officiel.',
+      },
+      workflow: {
+        structure: { name: current.laboratory, status: 'valid', date: new Date().toLocaleDateString('fr-FR') },
+        centre: { name: 'CEDoc Sciences & Technologies', status: 'valid', date: new Date().toLocaleDateString('fr-FR') },
+        pole: { name: 'Pôle Doctoral USMBA', status: 'valid', date: new Date().toLocaleDateString('fr-FR') },
+      },
+    };
+
+    topics[index] = updated;
+    this.saveTopics(topics);
+
+    NotificationService.send({
+      recipientEmail: current.professorEmail,
+      recipientRole: 'thesis_director',
+      type: 'validation',
+      title: `Sujet validé, signé et publié (${current.code})`,
+      message: `Votre sujet "${current.title}" a été signé électroniquement par ${signer.name} et est désormais ouvert aux candidatures dans le catalogue public.`,
+      relatedTopicId: current.id,
+    });
+
+    return updated;
+  },
+
+  rejectTopic(topicId: string, reason: string, reviewerName: string): ThesisTopic | null {
+    const topics = this.getTopics();
+    const index = topics.findIndex((t) => t.id === topicId);
+    if (index === -1) return null;
+
+    const current = topics[index];
+    const updated: ThesisTopic = {
+      ...current,
+      workflowStatus: 'rejected',
+      status: 'closed',
+      isOfficialPublication: false,
+    };
+
+    topics[index] = updated;
+    this.saveTopics(topics);
+
+    NotificationService.send({
+      recipientEmail: current.professorEmail,
+      recipientRole: 'thesis_director',
+      type: 'decision',
+      title: `Sujet non retenu (${current.code})`,
+      message: `Votre sujet "${current.title}" a été rejeté par ${reviewerName}. Motif : ${reason}`,
+      relatedTopicId: current.id,
+    });
+
+    return updated;
+  },
+};
 
 /**
  * Cart management with local storage persistence
@@ -503,7 +804,7 @@ export const DEMO_APPLICATIONS: CandidateApplication[] = [
     topicCode: 'FST-LISIA-24-01',
     topicTitle: 'Arabic OCR using AI: Deep Learning Architectures for Historical Manuscript Digitization',
     candidateName: 'Youssef El Amrani',
-    candidateEmail: 'youssef.elamrani@etu.usmba.ac.ma',
+    candidateEmail: 'candidat.test@usmba.ma',
     candidatePhone: '+212 661 234 567',
     cne: 'N138294012',
     cin: 'CD718293',
@@ -513,7 +814,18 @@ export const DEMO_APPLICATIONS: CandidateApplication[] = [
     masterMention: 'Très Bien',
     pfeTitle: 'Segmentation et transcription de textes arabes manuscrits par réseaux CNN-LSTM',
     submissionDate: '2024-10-18',
-    status: 'pending_review',
+    status: 'admitted',
+    registrationDeadline: new Date(Date.now() + 7 * 86400000).toISOString(),
+    officialRanking: 1,
+    decisionDate: '2024-10-25',
+    decisionBy: 'Pr. Karim Benali (Directeur de Thèse)',
+    scientificOpinion: {
+      recommendation: 'favorable',
+      score: 17.5,
+      academicAppraisal: 'Profil d’excellence avec mention Très Bien. Adéquation remarquable avec le sujet de recherche.',
+      evaluatorName: 'Pr. Karim Benali',
+      evaluatedAt: '24/10/2024 15:30',
+    },
     documents: [
       { id: 'doc-1', name: 'Curriculum Vitae académique', category: 'cv', fileName: 'CV_Youssef_ElAmrani.pdf', fileSize: '1.2 Mo', status: 'valid' },
       { id: 'doc-2', name: 'Diplôme de Master (ou Attestation de réussite)', category: 'master_diploma', fileName: 'Attestation_Master_FST.pdf', fileSize: '2.1 Mo', status: 'valid' },
@@ -524,6 +836,45 @@ export const DEMO_APPLICATIONS: CandidateApplication[] = [
     history: [
       { id: 'h-1', date: '18/10/2024 14:32', action: 'Dossier soumis par le candidat', author: 'Youssef El Amrani' },
       { id: 'h-2', date: '19/10/2024 10:15', action: 'Contrôle de recevabilité administrative validé', author: 'CEDoc Sciences & Techniques' },
+      { id: 'h-3', date: '24/10/2024 15:30', action: 'Avis scientifique Favorable émis (17.5/20)', author: 'Pr. Karim Benali' },
+      { id: 'h-4', date: '25/10/2024 11:00', action: 'Admission officielle sur Liste Principale notifiée', author: 'Direction du CEDoc' },
+    ],
+  },
+  {
+    id: 'app-2024-001-wl',
+    topicId: 'usmba-topic-2024-001',
+    topicCode: 'FST-LISIA-24-01',
+    topicTitle: 'Arabic OCR using AI: Deep Learning Architectures for Historical Manuscript Digitization',
+    candidateName: 'Oussama Tazi',
+    candidateEmail: 'oussama.tazi@etu.usmba.ac.ma',
+    candidatePhone: '+212 662 998 776',
+    cne: 'N134009887',
+    cin: 'CD998877',
+    masterDegree: 'Master Big Data & Intelligence Artificielle',
+    masterUniversity: 'Faculté des Sciences et Techniques (FST) de Fès',
+    masterGrade: 15.80,
+    masterMention: 'Bien',
+    pfeTitle: 'Reconnaissance de caractères manuscrits anciens par Transformers',
+    submissionDate: '2024-10-20',
+    status: 'waitlist',
+    waitlistRank: 1,
+    decisionDate: '2024-10-25',
+    decisionBy: 'Pr. Karim Benali (Directeur de Thèse)',
+    scientificOpinion: {
+      recommendation: 'favorable',
+      score: 16.2,
+      academicAppraisal: 'Très bon parcours. Classé n°1 sur liste d’attente pour éventuel désistement.',
+      evaluatorName: 'Pr. Karim Benali',
+      evaluatedAt: '24/10/2024 16:00',
+    },
+    documents: [
+      { id: 'doc-wl-1', name: 'CV académique', category: 'cv', fileName: 'CV_Oussama_Tazi.pdf', fileSize: '1.0 Mo', status: 'valid' },
+      { id: 'doc-wl-2', name: 'Diplôme de Master', category: 'master_diploma', fileName: 'Master_Tazi.pdf', fileSize: '1.8 Mo', status: 'valid' },
+      { id: 'doc-wl-3', name: 'Relevés de notes', category: 'transcripts', fileName: 'Notes_Tazi.pdf', fileSize: '2.9 Mo', status: 'valid' },
+    ],
+    history: [
+      { id: 'h-wl-1', date: '20/10/2024 11:00', action: 'Dossier soumis par le candidat', author: 'Oussama Tazi' },
+      { id: 'h-wl-2', date: '24/10/2024 16:00', action: 'Évaluation scientifique terminée — Classé Liste d’Attente Rang 1', author: 'Pr. Karim Benali' },
     ],
   },
   {
@@ -664,9 +1015,38 @@ export const ApplicationService = {
 
   saveApplications(apps: CandidateApplication[]): void {
     try {
-      localStorage.setItem(APPLICATIONS_STORAGE_KEY, JSON.stringify(apps));
+      // Protect localStorage against quota exhaustion from heavy base64 strings
+      const sanitized = apps.map((app) => ({
+        ...app,
+        documents: (app.documents || []).map((doc) => {
+          if (doc.pages && doc.pages.some((p) => typeof p === 'string' && p.length > 40000)) {
+            return {
+              ...doc,
+              pages: doc.pages.map((p, idx) => (idx === 0 ? p.slice(0, 300) : '[local_storage_file]')),
+              storageRef: doc.id,
+              isStoredInIndexedDb: true,
+            };
+          }
+          return doc;
+        }),
+      }));
+      localStorage.setItem(APPLICATIONS_STORAGE_KEY, JSON.stringify(sanitized));
     } catch (e) {
-      console.warn('Unable to persist applications to localStorage', e);
+      console.warn('Unable to persist full applications to localStorage, falling back to lightweight schema', e);
+      try {
+        const minimal = apps.map((app) => ({
+          ...app,
+          documents: (app.documents || []).map((doc) => ({
+            ...doc,
+            pages: undefined,
+            storageRef: doc.id,
+            isStoredInIndexedDb: true,
+          })),
+        }));
+        localStorage.setItem(APPLICATIONS_STORAGE_KEY, JSON.stringify(minimal));
+      } catch (fatal) {
+        console.error('Fatal: localStorage quota exceeded completely', fatal);
+      }
     }
   },
 
@@ -823,7 +1203,7 @@ export const ApplicationService = {
       if (targetTopic?.professorEmail) {
         NotificationService.createNotification({
           recipientEmail: targetTopic.professorEmail,
-          recipientRole: 'professor',
+          recipientRole: 'thesis_director',
           title: `Nouvelle candidature reçue (${app.topicCode})`,
           titleAr: `طلب ترشيح جديد (${app.topicCode})`,
           message: `${app.candidateName} (${app.masterDegree}, ${app.masterGrade}/20) a postulé à votre sujet.`,

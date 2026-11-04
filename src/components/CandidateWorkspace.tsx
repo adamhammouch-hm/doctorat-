@@ -19,6 +19,7 @@ import {
 } from '../types';
 import { ProfileService } from '../services/profileService';
 import { ApplicationService } from '../services/thesisService';
+import { AdmissionWaitlistService } from '../services/admissionWaitlistService';
 import { DocumentUploadModal } from './DocumentUploadModal';
 import { CinOcrModal } from './CinOcrModal';
 import { 
@@ -105,24 +106,42 @@ export const CandidateWorkspace: React.FC<CandidateWorkspaceProps> = ({
       );
     }
     switch (status) {
-      case 'accepted':
+      case 'registration_confirmed':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
-            <span>Admis — Liste Principale</span>
+            <span>Inscription confirmée</span>
           </span>
         );
+      case 'admitted':
+      case 'accepted':
+      case 'registration_pending':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+            <span>Admis — Inscription à effectuer</span>
+          </span>
+        );
+      case 'waitlist':
       case 'waitlisted':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
-            <Clock className="w-3.5 h-3.5 text-amber-700" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-800 border border-indigo-300">
+            <Clock className="w-3.5 h-3.5 text-indigo-700" />
             <span>Liste d’Attente</span>
+          </span>
+        );
+      case 'deadline_exceeded':
+      case 'admission_cancelled':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300">
+            <XCircle className="w-3.5 h-3.5 text-rose-700" />
+            <span>Admission Annulée (Délai dépassé)</span>
           </span>
         );
       case 'correction_requested':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300 animate-pulse">
-            <AlertCircle className="w-3.5 h-3.5 text-rose-700" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 animate-pulse">
+            <AlertCircle className="w-3.5 h-3.5 text-amber-700" />
             <span>Correction Demandée</span>
           </span>
         );
@@ -141,6 +160,7 @@ export const CandidateWorkspace: React.FC<CandidateWorkspaceProps> = ({
           </span>
         );
       case 'pending_review':
+      case 'under_review':
       default:
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
@@ -328,6 +348,87 @@ export const CandidateWorkspace: React.FC<CandidateWorkspaceProps> = ({
                         Reprendre la saisie
                       </button>
                     )}
+                  </div>
+                )}
+
+                {/* ADMISSION & REGISTRATION ALERT */}
+                {(activeApp.status === 'admitted' || activeApp.status === 'accepted' || activeApp.status === 'registration_pending') && (
+                  <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0" />
+                      <div>
+                        <div className="font-bold text-sm text-emerald-900">
+                          Félicitations : Votre candidature est retenue sur Liste Principale !
+                        </div>
+                        <div className="text-xs text-emerald-800">
+                          Votre dossier a été validé par la commission académique et le Directeur de structure.
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-white/90 rounded-lg border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                      <div>
+                        <span className="text-slate-600">Date limite impérative d'inscription : </span>
+                        <strong className="font-mono text-emerald-900 font-bold">
+                          {activeApp.registrationDeadline 
+                            ? new Date(activeApp.registrationDeadline).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+                            : 'Date limite fixée par la campagne'}
+                        </strong>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const res = AdmissionWaitlistService.confirmCandidateRegistration(activeApp.id, user.name);
+                          if (res.success && onApplicationUpdated) {
+                            const updated = ApplicationService.getApplications().find((a) => a.id === activeApp.id);
+                            if (updated) onApplicationUpdated(updated);
+                          }
+                        }}
+                        className="px-4 py-2 rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs shrink-0"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Confirmer mon inscription administrative en ligne</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* REGISTRATION CONFIRMED ALERT */}
+                {activeApp.status === 'registration_confirmed' && (
+                  <div className="p-3.5 rounded-xl bg-emerald-100/70 border border-emerald-300 text-emerald-900 flex items-center gap-3 text-xs font-semibold">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0" />
+                    <div>
+                      <span>Inscription administrative confirmée avec succès.</span>
+                      <p className="text-[11px] font-normal text-emerald-800 mt-0.5">
+                        Votre attestation d’inscription au cycle doctoral USMBA sera mise à votre disposition au guichet du CEDoc lors du dépôt physique des originaux.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* ADMISSION CANCELLED / DEADLINE EXCEEDED ALERT */}
+                {(activeApp.status === 'admission_cancelled' || activeApp.status === 'deadline_exceeded') && (
+                  <div className="p-4 rounded-xl bg-rose-50 border border-rose-300 text-rose-950 space-y-1.5 text-xs">
+                    <div className="font-bold flex items-center gap-1.5 text-rose-900 text-sm">
+                      <AlertCircle className="w-4 h-4 text-rose-700" />
+                      <span>Admission révoquée pour non-respect du délai d'inscription</span>
+                    </div>
+                    <p className="text-rose-800">
+                      Conformément à la réglementation du cycle doctoral de l'USMBA, l'inscription administrative en ligne n'a pas été confirmée avant la date d'échéance fixée. La place a été réaffectée à la liste d'attente.
+                    </p>
+                  </div>
+                )}
+
+                {/* WAITLIST ALERT */}
+                {(activeApp.status === 'waitlist' || activeApp.status === 'waitlisted') && (
+                  <div className="p-3.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-950 space-y-1 text-xs">
+                    <div className="font-bold flex items-center gap-1.5 text-indigo-900">
+                      <Clock className="w-4 h-4 text-indigo-700" />
+                      <span>Candidature classée sur Liste d'Attente (Rang #{activeApp.waitlistRank || 1})</span>
+                    </div>
+                    <p className="text-indigo-800 text-[11px]">
+                      En cas de désistement ou de dépassement du délai d'inscription par un candidat admis sur Liste Principale, le système proposera automatiquement votre repêchage au Directeur de structure. Vous recevrez alors une alerte par e-mail et sur cette plateforme.
+                    </p>
                   </div>
                 )}
 

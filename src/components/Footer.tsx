@@ -39,7 +39,10 @@ export const Footer: React.FC<FooterProps> = ({ language }) => {
         {/* Bottom bar */}
         <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-2 text-[11px] text-slate-500">
           <span>{t('footerCopyright', { year: new Date().getFullYear() })}</span>
-          <span>Plateforme de Gestion du Cycle Doctoral (GCD) · Phase 1</span>
+          <span className="flex items-center gap-2">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span>Architecture 100% Locale &amp; Autonome (localStorage + IndexedDB) · Zéro Cloud Externe</span>
+          </span>
         </div>
       </div>
     </footer>

@@ -22,10 +22,12 @@ import {
   DEMO_TOPICS, 
   CartService, 
   ApplicationService, 
+  ThesisTopicService,
   filterAndSortTopics 
 } from './services/thesisService';
 import { AuthService } from './services/authService';
 import { NotificationService } from './services/notificationService';
+import { AdmissionWaitlistService } from './services/admissionWaitlistService';
 import { getTranslation } from './services/i18n';
 import { Header } from './components/Header';
 import { CatalogFilterBar } from './components/CatalogFilterBar';
@@ -34,8 +36,8 @@ import { TopicDetailModal } from './components/TopicDetailModal';
 import { CartDrawer } from './components/CartDrawer';
 import { AuthModal } from './components/AuthModal';
 import { ProcedureGuideModal } from './components/ProcedureGuideModal';
-import { ProfessorWorkspace } from './components/ProfessorWorkspace';
-import { AdminWorkspace } from './components/AdminWorkspace';
+import { ThesisDirectorWorkspace } from './components/ThesisDirectorWorkspace';
+import { StructureDirectorWorkspace } from './components/StructureDirectorWorkspace';
 import { CandidateWorkspace } from './components/CandidateWorkspace';
 import { ApplicationFormModal } from './components/ApplicationFormModal';
 import { NotificationCenterModal } from './components/NotificationCenterModal';
@@ -101,11 +103,25 @@ export default function App() {
   });
 
   // 4. Data states: Topics and Applications
-  const [topics] = useState<ThesisTopic[]>(DEMO_TOPICS);
+  const [topics, setTopics] = useState<ThesisTopic[]>(() => ThesisTopicService.getTopics());
   const [applications, setApplications] = useState<CandidateApplication[]>(() => 
     ApplicationService.getApplications()
   );
   const [filters, setFilters] = useState<TopicFilters>(INITIAL_FILTERS);
+
+  const refreshTopics = () => setTopics(ThesisTopicService.getTopics());
+
+  // Automatic scan of admission deadlines & waitlist promotion on startup
+  useEffect(() => {
+    const res = AdmissionWaitlistService.checkAndProcessExpirations(
+      ApplicationService.getApplications(),
+      ThesisTopicService.getTopics()
+    );
+    if (res.expiredCount > 0 || res.newProposalsCount > 0) {
+      setApplications(ApplicationService.getApplications());
+      setNotifications(NotificationService.getNotifications(currentUser?.email, currentUser?.role));
+    }
+  }, []);
 
   // 5. Cart state with localStorage synchronization
   const [cartTopicIds, setCartTopicIds] = useState<string[]>(() => CartService.getCartTopics());
@@ -293,19 +309,28 @@ export default function App() {
     setApplications(ApplicationService.getApplications());
     refreshNotifications();
 
-    const statusLabels: Record<CandidateApplication['status'], string> = {
+    const statusLabels: Record<string, string> = {
+      admitted: 'Admis (Liste Principale)',
       accepted: 'Admis (Liste Principale)',
+      waitlist: 'Classé sur Liste d’Attente',
       waitlisted: 'Classé sur Liste d’Attente',
       rejected: 'Non Retenu (Refus motivé)',
       correction_requested: 'Demande de correction transmise au candidat',
       pending_review: 'Remis en attente d’examen',
+      under_review: 'En cours d’examen',
+      pending_decision: 'En attente de décision',
+      complete: 'Dossier complet',
+      incomplete: 'Dossier incomplet',
       draft: 'Brouillon',
-      incomplete: 'Incomplet',
+      registration_pending: 'Inscription à effectuer',
+      registration_confirmed: 'Inscription confirmée',
+      deadline_exceeded: 'Délai d’inscription dépassé',
+      admission_cancelled: 'Admission annulée',
     };
 
     showToast(
-      `Statut du dossier mis à jour : ${statusLabels[newStatus]}`,
-      newStatus === 'accepted' ? 'success' : newStatus === 'rejected' ? 'warning' : 'info'
+      `Statut du dossier mis à jour : ${statusLabels[newStatus] || newStatus}`,
+      newStatus === 'admitted' || newStatus === 'accepted' ? 'success' : newStatus === 'rejected' ? 'warning' : 'info'
     );
   };
 
@@ -330,7 +355,55 @@ export default function App() {
     showToast(`Avis scientifique enregistré pour le dossier #${appId}.`, 'success');
   };
 
-  // Physical reception handling (Admin workspace)
+  // Topic Workflow Handlers (Creation, Modification, Revision, Signature)
+  const handleSaveTopic = (topicData: Partial<ThesisTopic>, topicId?: string) => {
+    if (topicId) {
+      ThesisTopicService.updateTopic(topicId, topicData, currentUser?.name || 'Directeur de thèse');
+      showToast('Sujet de thèse mis à jour avec succès.', 'success');
+    } else {
+      ThesisTopicService.createTopic(topicData, {
+        name: currentUser?.name || 'Pr. Karim Benali',
+        email: currentUser?.email || 'directeur.these.test@usmba.ma',
+        title: currentUser?.title,
+        institution: currentUser?.institution,
+        laboratory: currentUser?.laboratory,
+      });
+      showToast('Nouveau sujet proposé et soumis au Directeur de structure pour signature.', 'success');
+    }
+    refreshTopics();
+    refreshNotifications();
+  };
+
+  const handleSignAndApproveTopic = (topicId: string, comments?: string) => {
+    ThesisTopicService.signAndApproveTopic(
+      topicId,
+      {
+        name: currentUser?.name || 'Pr. Mostafa Bennani',
+        email: currentUser?.email || 'directeur.structure.test@usmba.ma',
+        role: 'Directeur du CEDoc & Pôle Doctoral',
+      },
+      comments
+    );
+    refreshTopics();
+    refreshNotifications();
+    showToast('Sujet signé électroniquement et publié au catalogue officiel !', 'success');
+  };
+
+  const handleRequestTopicRevision = (topicId: string, message: string) => {
+    ThesisTopicService.requestTopicRevision(topicId, message, currentUser?.name || 'Directeur de structure');
+    refreshTopics();
+    refreshNotifications();
+    showToast('Demande de modification transmise au Directeur de thèse.', 'warning');
+  };
+
+  const handleRejectTopic = (topicId: string, reason: string) => {
+    ThesisTopicService.rejectTopic(topicId, reason, currentUser?.name || 'Directeur de structure');
+    refreshTopics();
+    refreshNotifications();
+    showToast('Sujet refusé avec motif notifié.', 'info');
+  };
+
+  // Physical reception handling (Structure Director workspace)
   const handleMarkPhysicalReception = (
     applicationId: string,
     agentName: string,
@@ -433,25 +506,31 @@ export default function App() {
         {/* If user is logged in and viewing their private workspace */}
         {currentUser && activeView === 'workspace' ? (
           <div>
-            {currentUser.role === 'professor' && (
-              <ProfessorWorkspace
+            {(currentUser.role === 'thesis_director' || (currentUser.role as any) === 'professor') && (
+              <ThesisDirectorWorkspace
                 topics={topics}
                 applications={applications}
                 onUpdateApplicationStatus={handleUpdateApplicationStatus}
                 onRequestPieceCorrection={handleRequestPieceCorrection}
                 onSaveScientificOpinion={handleSaveScientificOpinion}
+                onSaveTopic={handleSaveTopic}
                 currentUserName={currentUser.name}
+                currentUserEmail={currentUser.email}
                 language={language}
               />
             )}
 
-            {currentUser.role === 'admin' && (
-              <AdminWorkspace
+            {(currentUser.role === 'structure_director' || (currentUser.role as any) === 'admin') && (
+              <StructureDirectorWorkspace
                 topics={topics}
                 applications={applications}
                 onUpdateApplicationStatus={handleUpdateApplicationStatus}
-                onMarkPhysicalReception={handleMarkPhysicalReception}
-                onSaveScientificOpinion={handleSaveScientificOpinion}
+                onSignAndApproveTopic={handleSignAndApproveTopic}
+                onRequestTopicRevision={handleRequestTopicRevision}
+                onRejectTopic={handleRejectTopic}
+                onRefreshApplications={() => setApplications(ApplicationService.getApplications())}
+                currentUserName={currentUser.name}
+                currentUserEmail={currentUser.email}
                 language={language}
               />
             )}
@@ -465,7 +544,7 @@ export default function App() {
                 onOpenCart={() => setIsCartOpen(true)}
                 cartCount={cartTopicIds.length}
                 onResumeDraft={handleResumeDraft}
-                onApplicationUpdated={(updated) => setApplications(ApplicationService.getApplications())}
+                onApplicationUpdated={(_updated) => setApplications(ApplicationService.getApplications())}
               />
             )}
           </div>

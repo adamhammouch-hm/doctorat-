@@ -61,10 +61,12 @@ export const Header: React.FC<HeaderProps> = ({
 
   const getRoleLabel = (role: AppUser['role']) => {
     switch (role) {
-      case 'professor':
-        return isRtl ? 'أستاذ / مشرف' : 'Professeur / Encadrant';
-      case 'admin':
-        return isRtl ? 'إدارة مركز الدكتوراه' : 'Administration CEDoc';
+      case 'thesis_director':
+      case 'professor' as any:
+        return isRtl ? 'مدير الأطروحة / مشرف' : 'Directeur de thèse';
+      case 'structure_director':
+      case 'admin' as any:
+        return isRtl ? 'مدير البنية / القطب' : 'Directeur de structure';
       case 'candidate':
       default:
         return isRtl ? 'مترشح للدكتوراه' : 'Candidat';

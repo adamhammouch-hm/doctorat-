@@ -25,9 +25,20 @@ export const DEFAULT_CAMPAIGN: CampaignConfig = {
   closingDate: '2024-11-25',
   deliberationDate: '2024-12-05',
   resultsDate: '2024-12-10',
-  physicalDepositDeadline: '2024-12-20',
+  registrationDeadline: '2024-12-20T23:59:59',
+  registrationDaysAllowed: 10,
+  physicalDepositDeadline: '2024-12-25',
   status: 'active',
   maxApplicationsPerCandidate: 3,
+  deadlineHistory: [
+    {
+      date: '10/10/2024 09:00',
+      previousDeadline: '2024-12-15T23:59:59',
+      newDeadline: '2024-12-20T23:59:59',
+      reason: 'Calendrier académique initial fixé par le conseil du CEDoc',
+      modifiedBy: 'Pr. Mostafa Bennani (Directeur du CEDoc)',
+    },
+  ],
 };
 
 export const USMBA_INSTITUTIONS: InstitutionConfig[] = [
@@ -256,6 +267,33 @@ export const AdminConfigService = {
     } catch (e) {
       console.warn('Failed to save campaign config', e);
     }
+  },
+
+  updateCampaign(partial: Partial<CampaignConfig>): CampaignConfig {
+    const current = this.getCampaign();
+    const updated = { ...current, ...partial };
+    this.saveCampaign(updated);
+    return updated;
+  },
+
+  updateRegistrationDeadline(newDeadline: string, reason: string, authorName: string): CampaignConfig {
+    const current = this.getCampaign();
+    const history = current.deadlineHistory || [];
+    history.push({
+      date: new Date().toLocaleString('fr-FR'),
+      previousDeadline: current.registrationDeadline,
+      newDeadline,
+      reason,
+      modifiedBy: authorName,
+    });
+
+    const updated: CampaignConfig = {
+      ...current,
+      registrationDeadline: newDeadline,
+      deadlineHistory: history,
+    };
+    this.saveCampaign(updated);
+    return updated;
   },
 
   getRequiredDocuments(): RequiredDocumentConfig[] {
