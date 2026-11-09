@@ -6,23 +6,25 @@
  */
 
 import { AppNotification, AppRole, NotificationType } from '../types';
+import { V5_KEYS } from './dataMigrationService';
+import { parseDateSafe, toISOStringSafe } from './dateUtils';
 
-const NOTIFICATIONS_STORAGE_KEY = 'usmba_notifications_v3';
+const NOTIFICATIONS_STORAGE_KEY = V5_KEYS.NOTIFICATIONS;
 
-const INITIAL_DEMO_NOTIFICATIONS: AppNotification[] = [
+export const INITIAL_DEMO_NOTIFICATIONS: AppNotification[] = [
   {
     id: 'notif-001',
     recipientEmail: 'directeur.these.test@usmba.ma',
     recipientRole: 'thesis_director',
     title: 'Nouvelle candidature reçue',
     titleAr: 'تم استلام طلب ترشيح جديد',
-    message: 'Le candidat Youssef El Amrani a soumis un dossier pour le sujet FST-LISIA-24-01.',
-    messageAr: 'قدم المترشح يوسف العمراني ملف ترشيح للموضوع FST-LISIA-24-01.',
+    message: 'Le candidat Youssef El Amrani a soumis un dossier pour le sujet FST-LISIA-26-01.',
+    messageAr: 'قدم المترشح يوسف العمراني ملف ترشيح للموضوع FST-LISIA-26-01.',
     type: 'submission',
-    createdAt: '2024-10-18 14:35',
+    createdAt: '2026-10-18T14:35:00.000Z',
     read: false,
-    relatedApplicationId: 'app-2024-001',
-    relatedTopicId: 'usmba-topic-2024-001',
+    relatedApplicationId: 'app-2026-001',
+    relatedTopicId: 'usmba-topic-2026-001',
   },
   {
     id: 'notif-002',
@@ -30,13 +32,13 @@ const INITIAL_DEMO_NOTIFICATIONS: AppNotification[] = [
     recipientRole: 'thesis_director',
     title: 'Pièce en attente de vérification',
     titleAr: 'وثيقة في انتظار التحقق',
-    message: 'Salma Bennani (app-2024-002) a un dossier marqué avec demande de correction sur les relevés de notes.',
+    message: 'Salma Bennani (app-2026-002) a un dossier marqué avec demande de correction sur les relevés de notes.',
     messageAr: 'سلمى بناني ملفها موسوم بطلب تصحيح كشوف النقط.',
     type: 'correction',
-    createdAt: '2024-10-21 09:35',
+    createdAt: '2026-10-21T09:35:00.000Z',
     read: false,
-    relatedApplicationId: 'app-2024-002',
-    relatedTopicId: 'usmba-topic-2024-001',
+    relatedApplicationId: 'app-2026-002',
+    relatedTopicId: 'usmba-topic-2026-001',
   },
   {
     id: 'notif-003',
@@ -47,9 +49,9 @@ const INITIAL_DEMO_NOTIFICATIONS: AppNotification[] = [
     message: 'Votre candidature pour "Arabic OCR using AI" a été retenue sur Liste Principale. Pensez à finaliser votre inscription avant la date limite.',
     messageAr: 'تم قبول ترشيحك لموضوع التعرف الضوئي في اللائحة الرئيسية.',
     type: 'decision',
-    createdAt: '2024-10-25 11:00',
+    createdAt: '2026-10-25T11:00:00.000Z',
     read: false,
-    relatedApplicationId: 'app-2024-001',
+    relatedApplicationId: 'app-2026-001',
   },
   {
     id: 'notif-004',
@@ -57,10 +59,10 @@ const INITIAL_DEMO_NOTIFICATIONS: AppNotification[] = [
     recipientRole: 'structure_director',
     title: 'Campagne d’admission active & Suivi des délibérations',
     titleAr: 'حملة الانتقاء نشطة وتتبع المداولات',
-    message: 'Campagne doctorale 2024/2025 active. 5 dossiers soumis, propositions de repêchage disponibles.',
-    messageAr: 'حملة الدكتوراه 2024/2025 نشطة.',
+    message: 'Campagne doctorale 2026/2027 active. Dossiers soumis et propositions de repêchage disponibles.',
+    messageAr: 'حملة الدكتوراه 2026/2027 نشطة.',
     type: 'deadline',
-    createdAt: '2024-10-27 08:00',
+    createdAt: '2026-10-27T08:00:00.000Z',
     read: false,
   },
 ];
@@ -77,7 +79,11 @@ export const NotificationService = {
           (userRole && n.recipientRole === userRole && (!n.recipientEmail || n.recipientEmail === 'all'))
         );
       }
-      return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      return list.sort((a, b) => {
+        const tA = parseDateSafe(a.createdAt)?.getTime() || 0;
+        const tB = parseDateSafe(b.createdAt)?.getTime() || 0;
+        return tB - tA;
+      });
     } catch {
       return INITIAL_DEMO_NOTIFICATIONS;
     }
@@ -121,7 +127,7 @@ export const NotificationService = {
       message: data.message,
       messageAr: data.messageAr,
       type: data.type,
-      createdAt: new Date().toLocaleString('fr-FR'),
+      createdAt: toISOStringSafe(),
       read: false,
       relatedApplicationId: data.relatedApplicationId,
       relatedTopicId: data.relatedTopicId,

@@ -5,6 +5,9 @@
  */
 
 import { ThesisTopic, TopicFilters, CartConfig } from '../types';
+import { V5_KEYS } from './dataMigrationService';
+import { LocalFileStorage } from './localFileStorage';
+import { getCurrentAcademicYear } from './dateUtils';
 
 // Default configuration based on debate consensus (configurable by university)
 export const DEFAULT_CART_CONFIG: CartConfig = {
@@ -20,20 +23,20 @@ const CART_LIMIT_STORAGE_KEY = 'usmba_gcd_cart_limit_v1';
  */
 export const DEMO_TOPICS: ThesisTopic[] = [
   {
-    id: 'usmba-topic-2024-001',
-    code: 'FST-LISIA-24-01',
+    id: 'usmba-topic-2026-001',
+    code: 'FST-LISIA-26-01',
     title: 'Arabic OCR using AI: Deep Learning Architectures for Historical Manuscript Digitization',
     titleAr: 'التعرف الضوئي على الحروف العربية بالذكاء الاصطناعي: بنى التعلم العميق لرقمنة المخطوطات التاريخية',
     scientificDescription:
       'Ce projet doctoral vise à concevoir et évaluer de nouvelles architectures de réseaux de neurones profonds (Vision Transformers et modèles hybrides CNN-RNN) capables de transcrire avec haute fidélité des manuscrits arabes anciens présentant des variations calligraphiques complexes, dégradations physiques et ligatures multiples.',
     scientificDescriptionAr:
       'يهدف هذا المشروع البحثي إلى تصميم وتقييم بنى عصبية عميقة مبتكرة لفك وترجمة المخطوطات العربية القديمة ذات الخطوط المعقدة والتشابكات الصعبة والتلف المادي.',
-    academicYear: '2024/2025',
+    academicYear: '2026/2027',
     domain: 'Informatique & Intelligence Artificielle',
     domainAr: 'المعلوميات والذكاء الاصطناعي',
     professorName: 'Pr. Karim Benali',
     professorTitle: 'Professeur de l’Enseignement Supérieur (PES)',
-    professorEmail: 'karim.benali@usmba.ac.ma',
+    professorEmail: 'directeur.these.test@usmba.ma',
     laboratory: 'Laboratoire Systèmes Intelligents & Applications (LISIA)',
     institution: 'Faculté des Sciences et Techniques (FST) de Fès',
     eligibilityCriteria: [
@@ -45,7 +48,7 @@ export const DEMO_TOPICS: ThesisTopic[] = [
     fundingType: 'bourse_cnrst',
     spotsAvailable: 1,
     applicantsCount: 2, // As documented in guide screenshot page 17
-    submissionDeadline: '2024-11-20',
+    submissionDeadline: '2026-11-20',
     status: 'open',
     workflowStatus: 'approved_signed',
     isOfficialPublication: true,
@@ -53,44 +56,44 @@ export const DEMO_TOPICS: ThesisTopic[] = [
       signerName: 'Pr. Mostafa Bennani',
       signerEmail: 'directeur.structure.test@usmba.ma',
       signerRole: 'Directeur du CEDoc Sciences & Technologies',
-      signedAt: '28/08/2024 11:42',
+      signedAt: '28/08/2026 11:42',
       signatureFingerprint: 'SHA256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069',
-      comments: 'Sujet doctoral validé et signé pour la session académique 2024/2025.',
+      comments: 'Sujet doctoral validé et signé pour la session académique 2026/2027.',
     },
     workflow: {
       structure: {
         name: 'Laboratoire LISIA',
         status: 'valid',
-        date: '17/08/2024',
+        date: '17/08/2026',
         validatedBy: 'Directeur de Laboratoire',
         comments: 'Avis très favorable. Adéquation parfaite avec l’axe IA & Patrimoine.',
       },
       centre: {
         name: 'CEDoc Sciences & Techniques',
         status: 'valid',
-        date: '17/08/2024',
+        date: '17/08/2026',
         validatedBy: 'Conseil du CEDoc FST',
         comments: 'Validation du quota d’accueil et des prérequis pédagogiques.',
       },
       pole: {
         name: 'Pôle Doctoral USMBA',
         status: 'valid',
-        date: '28/08/2024',
+        date: '28/08/2026',
         validatedBy: 'Commission Centrale de la Recherche',
-        comments: 'Publication officielle autorisée pour la session 2024/2025.',
+        comments: 'Publication officielle autorisée pour la session 2026/2027.',
       },
     },
   },
   {
-    id: 'usmba-topic-2024-002',
-    code: 'FST-LISIA-24-02',
+    id: 'usmba-topic-2026-002',
+    code: 'FST-LISIA-26-02',
     title: 'Topic Labelling and Hierarchical Semantic Discovery in Unstructured Academic Texts',
     titleAr: 'تسمية المواضيع واستكشاف الدلالات الهرمية في النصوص الأكاديمية غير المهيكلة',
     scientificDescription:
       'Développement de modèles sémantiques non supervisés et semi-supervisés pour l’extraction automatique de thématiques de recherche à partir de corpus scientifiques pluridisciplinaires, avec application au catalogage des thèses marocaines.',
     scientificDescriptionAr:
       'تطوير نماذج دلالية غير خاضعة للإشراف للاستخراج التلقائي للمواضيع البحثية من المتون العلمية متعددة التخصصات وتصنيف الأطروحات الجامعية.',
-    academicYear: '2024/2025',
+    academicYear: '2026/2027',
     domain: 'Informatique & Intelligence Artificielle',
     domainAr: 'المعلوميات والذكاء الاصطناعي',
     professorName: 'Pr. Amina Berrada',
@@ -106,7 +109,7 @@ export const DEMO_TOPICS: ThesisTopic[] = [
     fundingType: 'projet_recherche',
     spotsAvailable: 1,
     applicantsCount: 1,
-    submissionDeadline: '2024-11-22',
+    submissionDeadline: '2026-11-22',
     status: 'open',
     workflowStatus: 'approved_signed',
     isOfficialPublication: true,
@@ -114,38 +117,38 @@ export const DEMO_TOPICS: ThesisTopic[] = [
       structure: {
         name: 'Laboratoire LISIA',
         status: 'valid',
-        date: '17/08/2024',
+        date: '17/08/2026',
         validatedBy: 'Directeur de Laboratoire',
       },
       centre: {
         name: 'CEDoc Sciences & Techniques',
         status: 'valid',
-        date: '17/08/2024',
+        date: '17/08/2026',
         validatedBy: 'Conseil du CEDoc',
       },
       pole: {
         name: 'Pôle Doctoral USMBA',
         status: 'valid',
-        date: '28/08/2024',
+        date: '28/08/2026',
         validatedBy: 'Pôle Doctoral Central',
       },
     },
   },
   {
-    id: 'usmba-topic-2024-003',
-    code: 'FST-LISIA-24-03',
+    id: 'usmba-topic-2026-003',
+    code: 'FST-LISIA-26-03',
     title: 'Detecting Public Security Threats on Social Media: A Multimodal NLP & Graph Neural Network Approach',
     titleAr: 'رصد التهديدات الأمنية في وسائل التواصل الاجتماعي: مقاربة متعددة الوسائط بالمعالجة اللغوية والشبكات البيانية',
     scientificDescription:
       'Conception de pipelines d’analyse en temps réel combinant analyse textuelle multilingue (Darija, Arabe standard, Français) et analyse structurelle des réseaux sociaux via Graph Neural Networks pour détecter la diffusion coordonnée de désinformation.',
     scientificDescriptionAr:
       'بناء منصة تحليل فوري تجمع بين معالجة النصوص متعددة اللغات (الدارجة، الفصحى، الفرنسية) وشبكات الرسوم البيانية العصبية لرصد التضليل والمحتوى التخريبي.',
-    academicYear: '2024/2025',
+    academicYear: '2026/2027',
     domain: 'Cybersécurité & Réseaux',
     domainAr: 'الأمن السيبراني والشبكات',
     professorName: 'Pr. Karim Benali',
     professorTitle: 'Professeur de l’Enseignement Supérieur (PES)',
-    professorEmail: 'karim.benali@usmba.ac.ma',
+    professorEmail: 'directeur.these.test@usmba.ma',
     laboratory: 'Laboratoire Systèmes Intelligents & Applications (LISIA)',
     institution: 'Faculté des Sciences et Techniques (FST) de Fès',
     eligibilityCriteria: [
@@ -156,26 +159,26 @@ export const DEMO_TOPICS: ThesisTopic[] = [
     fundingType: 'projet_recherche',
     spotsAvailable: 2,
     applicantsCount: 3,
-    submissionDeadline: '2024-11-25',
+    submissionDeadline: '2026-11-25',
     status: 'open',
     workflowStatus: 'approved_signed',
     isOfficialPublication: true,
     workflow: {
-      structure: { name: 'Laboratoire LISIA', status: 'valid', date: '18/08/2024' },
-      centre: { name: 'CEDoc Sciences & Techniques', status: 'valid', date: '19/08/2024' },
-      pole: { name: 'Pôle Doctoral USMBA', status: 'valid', date: '29/08/2024' },
+      structure: { name: 'Laboratoire LISIA', status: 'valid', date: '18/08/2026' },
+      centre: { name: 'CEDoc Sciences & Techniques', status: 'valid', date: '19/08/2026' },
+      pole: { name: 'Pôle Doctoral USMBA', status: 'valid', date: '29/08/2026' },
     },
   },
   {
-    id: 'usmba-topic-2024-004',
-    code: 'ENSA-LSI-24-04',
+    id: 'usmba-topic-2026-004',
+    code: 'ENSA-LIMII-26-04',
     title: 'Optimisation Énergétique des Réseaux Électriques Intelligents (Smart Grids) par IA Distribuée',
     titleAr: 'التحسين الطاقي للشبكات الكهربائية الذكية باستخدام الذكاء الاصطناعي الموزع',
     scientificDescription:
       'Étude et implémentation d’algorithmes d’apprentissage par renforcement multi-agents pour la gestion dynamique des micro-réseaux intégrant des sources photovoltaïques et éoliennes dans la région Fès-Meknès.',
     scientificDescriptionAr:
       'دراسة وتطبيق خوارزميات التعلم المعزز متعدد الوكلاء للإدارة الديناميكية للشبكات الكهربائية المصغرة المعتمدة على الطاقات المتجددة بجهة فاس-مكناس.',
-    academicYear: '2024/2025',
+    academicYear: '2026/2027',
     domain: 'Sciences de l’Ingénieur & Énergie',
     domainAr: 'علوم المهندس والطاقة',
     professorName: 'Pr. Mohammed Alami',
@@ -191,26 +194,26 @@ export const DEMO_TOPICS: ThesisTopic[] = [
     fundingType: 'partenariat_industriel',
     spotsAvailable: 1,
     applicantsCount: 1,
-    submissionDeadline: '2024-11-20',
+    submissionDeadline: '2026-11-20',
     status: 'open',
     workflowStatus: 'approved_signed',
     isOfficialPublication: true,
     workflow: {
-      structure: { name: 'Laboratoire LIMII', status: 'valid', date: '15/08/2024' },
-      centre: { name: 'CEDoc Sciences de l’Ingénieur', status: 'valid', date: '19/08/2024' },
-      pole: { name: 'Pôle Doctoral USMBA', status: 'valid', date: '30/08/2024' },
+      structure: { name: 'Laboratoire LIMII', status: 'valid', date: '15/08/2026' },
+      centre: { name: 'CEDoc Sciences de l’Ingénieur', status: 'valid', date: '19/08/2026' },
+      pole: { name: 'Pôle Doctoral USMBA', status: 'valid', date: '30/08/2026' },
     },
   },
   {
-    id: 'usmba-topic-2024-005',
-    code: 'FS-GEO-24-05',
+    id: 'usmba-topic-2026-005',
+    code: 'FS-GEO-26-05',
     title: 'Modélisation Hydrogéologique et Gestion Durable des Nappes Phréatiques du Bassin du Saïss',
     titleAr: 'النمذجة الهيدروجيولوجية والتدبير المستدام للمياه الجوفية بحوض سايس',
     scientificDescription:
       'Caractérisation spatio-temporelle de la recharge des aquifères et simulation des impacts du changement climatique sur les ressources hydriques souterraines à l’aide de couplages SIG et modèles hydrodynamiques.',
     scientificDescriptionAr:
       'التوصيف الزماني والمكاني لتغذية الفرشات المائية ومحاكاة آثار التغيرات المناخية على الموارد المائية الجوفية بحوض سايس.',
-    academicYear: '2024/2025',
+    academicYear: '2026/2027',
     domain: 'Géosciences & Environnement',
     domainAr: 'علوم الأرض والبيئة',
     professorName: 'Pr. Fatima Zahra Chraibi',
@@ -226,26 +229,26 @@ export const DEMO_TOPICS: ThesisTopic[] = [
     fundingType: 'bourse_cnrst',
     spotsAvailable: 2,
     applicantsCount: 4,
-    submissionDeadline: '2024-11-28',
+    submissionDeadline: '2026-11-28',
     status: 'open',
     workflowStatus: 'approved_signed',
     isOfficialPublication: true,
     workflow: {
-      structure: { name: 'Laboratoire Géorisques', status: 'valid', date: '16/08/2024' },
-      centre: { name: 'CEDoc Sciences Exactes et Naturelles', status: 'valid', date: '21/08/2024' },
-      pole: { name: 'Pôle Doctoral USMBA', status: 'valid', date: '01/09/2024' },
+      structure: { name: 'Laboratoire Géorisques', status: 'valid', date: '16/08/2026' },
+      centre: { name: 'CEDoc Sciences Exactes et Naturelles', status: 'valid', date: '21/08/2026' },
+      pole: { name: 'Pôle Doctoral USMBA', status: 'valid', date: '01/09/2026' },
     },
   },
   {
-    id: 'usmba-topic-2024-006',
-    code: 'FSJES-ECO-24-06',
+    id: 'usmba-topic-2026-006',
+    code: 'FSJES-ECO-26-06',
     title: 'Impact de la Digitalisation Bancaire et de la FinTech sur l’Inclusion Financière au Maroc',
     titleAr: 'أثر الرقمنة البنكية والتكنولوجيا المالية على الشمول المالي في المغرب',
     scientificDescription:
       'Analyse économétrique des déterminants de l’adoption des services financiers numériques auprès des TPME et des ménages ruraux, et évaluation des réformes réglementaires de Bank Al-Maghrib.',
     scientificDescriptionAr:
       'تحليل قياسي لمحددات تبني الخدمات المالية الرقمية لدى المقاولات الصغرى والمتوسطة والأسر القروية في المغرب.',
-    academicYear: '2024/2025',
+    academicYear: '2026/2027',
     domain: 'Économie & Gestion',
     domainAr: 'الاقتصاد والتدبير',
     professorName: 'Pr. Hassan Idrissi',
@@ -261,26 +264,26 @@ export const DEMO_TOPICS: ThesisTopic[] = [
     fundingType: 'non_remunere',
     spotsAvailable: 2,
     applicantsCount: 2,
-    submissionDeadline: '2024-11-30',
+    submissionDeadline: '2026-11-30',
     status: 'open',
     workflowStatus: 'approved_signed',
     isOfficialPublication: true,
     workflow: {
-      structure: { name: 'Laboratoire LREAG', status: 'valid', date: '14/08/2024' },
-      centre: { name: 'CEDoc Droit, Économie et Gestion', status: 'valid', date: '22/08/2024' },
-      pole: { name: 'Pôle Doctoral USMBA', status: 'valid', date: '02/09/2024' },
+      structure: { name: 'Laboratoire LREAG', status: 'valid', date: '14/08/2026' },
+      centre: { name: 'CEDoc Droit, Économie et Gestion', status: 'valid', date: '22/08/2026' },
+      pole: { name: 'Pôle Doctoral USMBA', status: 'valid', date: '02/09/2026' },
     },
   },
   {
-    id: 'usmba-topic-2024-007',
-    code: 'FLSH-LIT-24-07',
+    id: 'usmba-topic-2026-007',
+    code: 'FLSH-LIT-26-07',
     title: 'Patrimoine Manuscrit de la Médina de Fès : Conservation Numérique et Analyse Philologique',
     titleAr: 'التراث المخطوط بمدينة فاس القديمة: الحفظ الرقمي والتحليل الفيلولوجي',
     scientificDescription:
       'Inventaire raisonné, étude codicologique et édition critique de manuscrits inédits conservés dans les bibliothèques traditionnelles de Fès, avec proposition d’un corpus numérique interrogeable.',
     scientificDescriptionAr:
       'فهرسة وتحقيق نقدي لمخطوطات نادرة محفوظة في الخزانات التراثية بفاس، مع اقتراح منصة رقمية مفهرسة للباحثين.',
-    academicYear: '2024/2025',
+    academicYear: '2026/2027',
     domain: 'Lettres, Histoire & Patrimoine',
     domainAr: 'الآداب والتاريخ والتراث',
     professorName: 'Pr. Malika Touimi',
@@ -296,26 +299,26 @@ export const DEMO_TOPICS: ThesisTopic[] = [
     fundingType: 'bourse_cnrst',
     spotsAvailable: 1,
     applicantsCount: 3,
-    submissionDeadline: '2024-11-24',
+    submissionDeadline: '2026-11-24',
     status: 'open',
     workflowStatus: 'approved_signed',
     isOfficialPublication: true,
     workflow: {
-      structure: { name: 'Laboratoire Histoire & Patrimoine', status: 'valid', date: '12/08/2024' },
-      centre: { name: 'CEDoc Lettres et Sciences Humaines', status: 'valid', date: '20/08/2024' },
-      pole: { name: 'Pôle Doctoral USMBA', status: 'valid', date: '31/08/2024' },
+      structure: { name: 'Laboratoire Histoire & Patrimoine', status: 'valid', date: '12/08/2026' },
+      centre: { name: 'CEDoc Lettres et Sciences Humaines', status: 'valid', date: '20/08/2026' },
+      pole: { name: 'Pôle Doctoral USMBA', status: 'valid', date: '31/08/2026' },
     },
   },
   {
-    id: 'usmba-topic-2024-008',
-    code: 'FST-BIO-24-08',
+    id: 'usmba-topic-2026-008',
+    code: 'FST-BIO-26-08',
     title: 'Valorisation Biotechnologique des Sous-produits Oléicoles (Margines et Grignons) de la Région Fès-Meknès',
     titleAr: 'التثمين التكنولوجي الحيوي للمخلفات الزيتونية (المرجان والفيتور) بجهة فاس-مكناس',
     scientificDescription:
       'Extraction de polyphénols antioxydants et bioconversion anaérobie des déchets de l’industrie oléicole pour la production combinée de biogaz et de biofertilisants à haute valeur agronomique.',
     scientificDescriptionAr:
       'استخلاص مضادات الأكسدة والتحويل الحيوي اللاهوائي لمخلفات عصر الزيتون لإنتاج الغاز الحيوي والأسمدة العضوية.',
-    academicYear: '2024/2025',
+    academicYear: '2026/2027',
     domain: 'Biotechnologie & Agro-ressources',
     domainAr: 'التكنولوجيا الحيوية والموارد الزراعية',
     professorName: 'Pr. Younes Filali',
@@ -331,31 +334,31 @@ export const DEMO_TOPICS: ThesisTopic[] = [
     fundingType: 'projet_recherche',
     spotsAvailable: 1,
     applicantsCount: 2,
-    submissionDeadline: '2024-11-26',
+    submissionDeadline: '2026-11-26',
     status: 'open',
     workflowStatus: 'approved_signed',
     isOfficialPublication: true,
     workflow: {
-      structure: { name: 'Laboratoire Bioressources', status: 'valid', date: '19/08/2024' },
-      centre: { name: 'CEDoc Sciences & Techniques', status: 'valid', date: '24/08/2024' },
-      pole: { name: 'Pôle Doctoral USMBA', status: 'valid', date: '03/09/2024' },
+      structure: { name: 'Laboratoire Bioressources', status: 'valid', date: '19/08/2026' },
+      centre: { name: 'CEDoc Sciences & Techniques', status: 'valid', date: '24/08/2026' },
+      pole: { name: 'Pôle Doctoral USMBA', status: 'valid', date: '03/09/2026' },
     },
   },
   {
-    id: 'usmba-topic-2024-009',
-    code: 'FST-LISIA-24-09',
+    id: 'usmba-topic-2026-009',
+    code: 'FST-LISIA-26-09',
     title: 'Sujet Prototype 30-08 : Diagnostic Prédictif des Éoliennes Offshore par Réseaux de Capteurs IoT',
     titleAr: 'موضوع تجريبي 30-08: التشخيص التنبئي لعنفات الرياح البحرية عبر شبكات إنترنت الأشياء',
     scientificDescription:
       'Ce sujet est actuellement en phase finale d’arbitrage par la commission centrale du Pôle Doctoral. Il n’accepte pas encore de candidatures publiques.',
     scientificDescriptionAr:
       'هذا الموضوع قيد المراجعة النهائية من طرف لجنة القطب الجامعي ولا يقبل الترشيحات حالياً.',
-    academicYear: '2024/2025',
+    academicYear: '2026/2027',
     domain: 'Informatique & Intelligence Artificielle',
     domainAr: 'المعلوميات والذكاء الاصطناعي',
     professorName: 'Pr. Karim Benali',
     professorTitle: 'Professeur de l’Enseignement Supérieur (PES)',
-    professorEmail: 'karim.benali@usmba.ac.ma',
+    professorEmail: 'directeur.these.test@usmba.ma',
     laboratory: 'Laboratoire Systèmes Intelligents & Applications (LISIA)',
     institution: 'Faculté des Sciences et Techniques (FST) de Fès',
     eligibilityCriteria: ['Master ou diplôme d’ingénieur'],
@@ -363,31 +366,31 @@ export const DEMO_TOPICS: ThesisTopic[] = [
     fundingType: 'projet_recherche',
     spotsAvailable: 1,
     applicantsCount: 1,
-    submissionDeadline: '2024-12-15',
+    submissionDeadline: '2026-12-15',
     status: 'under_review',
     workflowStatus: 'submitted',
     isOfficialPublication: false,
     workflow: {
-      structure: { name: 'Laboratoire LISIA', status: 'valid', date: '17/08/2024' },
-      centre: { name: 'CEDoc Sciences & Techniques', status: 'valid', date: '17/08/2024' },
+      structure: { name: 'Laboratoire LISIA', status: 'valid', date: '17/08/2026' },
+      centre: { name: 'CEDoc Sciences & Techniques', status: 'valid', date: '17/08/2026' },
       pole: { name: 'Pôle Doctoral USMBA', status: 'pending', comments: 'En attente d’arbitrage et signature par le Directeur de structure' },
     },
   },
   {
-    id: 'usmba-topic-2024-010',
-    code: 'FST-LISIA-24-10',
+    id: 'usmba-topic-2026-010',
+    code: 'FST-LISIA-26-10',
     title: 'Apprentissage Fédéré pour la Confidentialité des Données Médicales Hospitalières',
     titleAr: 'التعلم الموحد لحماية سرية البيانات الطبية الاستشفائية',
     scientificDescription:
       'Développement d’algorithmes Federated Learning sécurisés et robustes aux attaques d’empoisonnement, appliqués à l’analyse collaborative d’images médicales entre plusieurs centres hospitaliers universitaires régionaux sans partage direct des dossiers patients.',
     scientificDescriptionAr:
       'تطوير خوارزميات التعلم الموحد الآمن والمقاوم للهجمات، لتحليل الصور الطبية بتعاون المستشفيات الجامعية دون المساس بخصوصية المرضى.',
-    academicYear: '2024/2025',
+    academicYear: '2026/2027',
     domain: 'Informatique & Intelligence Artificielle',
     domainAr: 'المعلوميات والذكاء الاصطناعي',
     professorName: 'Pr. Karim Benali',
     professorTitle: 'Professeur de l’Enseignement Supérieur (PES)',
-    professorEmail: 'karim.benali@usmba.ac.ma',
+    professorEmail: 'directeur.these.test@usmba.ma',
     laboratory: 'Laboratoire Systèmes Intelligents & Applications (LISIA)',
     institution: 'Faculté des Sciences et Techniques (FST) de Fès',
     eligibilityCriteria: ['Master ou Ingénieur en Informatique ou Cybersécurité', 'Bonne maîtrise de Python et PySyft / Flower'],
@@ -395,27 +398,27 @@ export const DEMO_TOPICS: ThesisTopic[] = [
     fundingType: 'projet_recherche',
     spotsAvailable: 1,
     applicantsCount: 0,
-    submissionDeadline: '2024-12-20',
+    submissionDeadline: '2026-12-20',
     status: 'under_review',
     workflowStatus: 'revision_requested',
     isOfficialPublication: false,
     revisionRequests: [
       {
-        date: '12/09/2024 10:30',
+        date: '12/09/2026 10:30',
         requestedBy: 'Pr. Mostafa Bennani (Directeur du CEDoc)',
         message: 'Prière de préciser les protocoles de chiffrement homomorphe envisagés et de joindre l’accord de principe du comité d’éthique du CHU Hassan II de Fès avant validation définitive.',
         resolved: false,
       },
     ],
     workflow: {
-      structure: { name: 'Laboratoire LISIA', status: 'valid', date: '01/09/2024' },
-      centre: { name: 'CEDoc Sciences & Techniques', status: 'revision_requested', date: '12/09/2024', comments: 'Précisions déontologiques demandées' },
+      structure: { name: 'Laboratoire LISIA', status: 'valid', date: '01/09/2026' },
+      centre: { name: 'CEDoc Sciences & Techniques', status: 'revision_requested', date: '12/09/2026', comments: 'Précisions déontologiques demandées' },
       pole: { name: 'Pôle Doctoral USMBA', status: 'pending' },
     },
   },
 ];
 
-const TOPICS_STORAGE_KEY = 'usmba_thesis_topics_v3';
+const TOPICS_STORAGE_KEY = V5_KEYS.TOPICS;
 
 /**
  * Service de gestion du cycle de vie des sujets de thèse :
@@ -425,21 +428,11 @@ export const ThesisTopicService = {
   getTopics(): ThesisTopic[] {
     try {
       const raw = localStorage.getItem(TOPICS_STORAGE_KEY);
-      if (!raw) {
-        this.saveTopics(DEMO_TOPICS);
-        return DEMO_TOPICS;
+      if (raw !== null) {
+        return JSON.parse(raw);
       }
-      const parsed: ThesisTopic[] = JSON.parse(raw);
-      // Ensure demo topics exist
-      let updated = false;
-      for (const d of DEMO_TOPICS) {
-        if (!parsed.some((p) => p.id === d.id)) {
-          parsed.push(d);
-          updated = true;
-        }
-      }
-      if (updated) this.saveTopics(parsed);
-      return parsed;
+      this.saveTopics(DEMO_TOPICS);
+      return DEMO_TOPICS;
     } catch {
       return DEMO_TOPICS;
     }
@@ -459,7 +452,7 @@ export const ThesisTopicService = {
   ): ThesisTopic {
     const topics = this.getTopics();
     const count = topics.length + 1;
-    const code = `FST-LISIA-24-${count < 10 ? '0' + count : count}`;
+    const code = `FST-LISIA-26-${count < 10 ? '0' + count : count}`;
 
     const newTopic: ThesisTopic = {
       id: `topic-${Date.now()}`,
@@ -468,7 +461,7 @@ export const ThesisTopicService = {
       titleAr: topicData.titleAr || '',
       scientificDescription: topicData.scientificDescription || '',
       scientificDescriptionAr: topicData.scientificDescriptionAr || '',
-      academicYear: topicData.academicYear || '2024/2025',
+      academicYear: topicData.academicYear || getCurrentAcademicYear(),
       domain: topicData.domain || 'Informatique & Intelligence Artificielle',
       domainAr: topicData.domainAr || 'المعلوميات والذكاء الاصطناعي',
       specialty: topicData.specialty || 'Intelligence Artificielle',
@@ -486,7 +479,7 @@ export const ThesisTopicService = {
       fundingType: topicData.fundingType || 'projet_recherche',
       spotsAvailable: topicData.spotsAvailable || 1,
       applicantsCount: 0,
-      submissionDeadline: topicData.submissionDeadline || '2024-12-15',
+      submissionDeadline: topicData.submissionDeadline || '2026-11-25',
       status: 'under_review',
       workflowStatus: 'submitted',
       isOfficialPublication: false,
@@ -795,13 +788,40 @@ export function filterAndSortTopics(topics: ThesisTopic[], filters: TopicFilters
 import { CandidateApplication, ApplicationDocument, ScientificOpinion } from '../types';
 import { NotificationService } from './notificationService';
 
-const APPLICATIONS_STORAGE_KEY = 'usmba_applications_v1';
+const APPLICATIONS_STORAGE_KEY = V5_KEYS.APPLICATIONS;
 
 export const DEMO_APPLICATIONS: CandidateApplication[] = [
   {
-    id: 'app-2024-001',
-    topicId: 'usmba-topic-2024-001',
-    topicCode: 'FST-LISIA-24-01',
+    id: 'app-2026-draft-01',
+    topicId: 'usmba-topic-2026-004',
+    topicCode: 'ENSA-LIMII-26-04',
+    topicTitle: 'Optimisation Énergétique des Réseaux Électriques Intelligents (Smart Grids) par IA Distribuée',
+    candidateName: 'Youssef El Amrani',
+    candidateEmail: 'candidat.test@usmba.ma',
+    candidatePhone: '+212 661 234 567',
+    cne: 'N138294012',
+    cin: 'CD718293',
+    masterDegree: 'Master Recherche en Informatique et Systèmes Intelligents',
+    masterUniversity: 'Faculté des Sciences et Techniques (FST) de Fès',
+    masterGrade: 16.20,
+    masterMention: 'Très Bien',
+    pfeTitle: 'Optimisation stochastique appliquée aux micro-réseaux intelligents',
+    submissionDate: '2026-11-02',
+    status: 'draft',
+    isDraft: true,
+    draftStep: 3,
+    documents: [
+      { id: 'doc-draft-1', name: 'Curriculum Vitae académique', category: 'cv', fileName: 'CV_ElAmrani_Brouillon.pdf', fileSize: '1.1 Mo', status: 'valid' },
+      { id: 'doc-draft-2', name: 'Diplôme de Master (ou Attestation)', category: 'master_diploma', fileName: 'Attestation_Master_Provisoire.pdf', fileSize: '1.9 Mo', status: 'valid' },
+    ],
+    history: [
+      { id: 'h-draft-1', date: '02/11/2026 11:15', action: 'Brouillon sauvegardé (Étape 3 : Pièces jointes)', author: 'Youssef El Amrani' },
+    ],
+  },
+  {
+    id: 'app-2026-001',
+    topicId: 'usmba-topic-2026-001',
+    topicCode: 'FST-LISIA-26-01',
     topicTitle: 'Arabic OCR using AI: Deep Learning Architectures for Historical Manuscript Digitization',
     candidateName: 'Youssef El Amrani',
     candidateEmail: 'candidat.test@usmba.ma',
@@ -813,18 +833,18 @@ export const DEMO_APPLICATIONS: CandidateApplication[] = [
     masterGrade: 16.20,
     masterMention: 'Très Bien',
     pfeTitle: 'Segmentation et transcription de textes arabes manuscrits par réseaux CNN-LSTM',
-    submissionDate: '2024-10-18',
+    submissionDate: '2026-10-18',
     status: 'admitted',
     registrationDeadline: new Date(Date.now() + 7 * 86400000).toISOString(),
     officialRanking: 1,
-    decisionDate: '2024-10-25',
+    decisionDate: '2026-10-25',
     decisionBy: 'Pr. Karim Benali (Directeur de Thèse)',
     scientificOpinion: {
       recommendation: 'favorable',
       score: 17.5,
       academicAppraisal: 'Profil d’excellence avec mention Très Bien. Adéquation remarquable avec le sujet de recherche.',
       evaluatorName: 'Pr. Karim Benali',
-      evaluatedAt: '24/10/2024 15:30',
+      evaluatedAt: '24/10/2026 15:30',
     },
     documents: [
       { id: 'doc-1', name: 'Curriculum Vitae académique', category: 'cv', fileName: 'CV_Youssef_ElAmrani.pdf', fileSize: '1.2 Mo', status: 'valid' },
@@ -834,16 +854,16 @@ export const DEMO_APPLICATIONS: CandidateApplication[] = [
       { id: 'doc-5', name: 'Carte Nationale d’Identité (CIN)', category: 'cin', fileName: 'CNIE_Recto_Verso.pdf', fileSize: '850 Ko', status: 'valid' },
     ],
     history: [
-      { id: 'h-1', date: '18/10/2024 14:32', action: 'Dossier soumis par le candidat', author: 'Youssef El Amrani' },
-      { id: 'h-2', date: '19/10/2024 10:15', action: 'Contrôle de recevabilité administrative validé', author: 'CEDoc Sciences & Techniques' },
-      { id: 'h-3', date: '24/10/2024 15:30', action: 'Avis scientifique Favorable émis (17.5/20)', author: 'Pr. Karim Benali' },
-      { id: 'h-4', date: '25/10/2024 11:00', action: 'Admission officielle sur Liste Principale notifiée', author: 'Direction du CEDoc' },
+      { id: 'h-1', date: '18/10/2026 14:32', action: 'Dossier soumis par le candidat', author: 'Youssef El Amrani' },
+      { id: 'h-2', date: '19/10/2026 10:15', action: 'Contrôle de recevabilité administrative validé', author: 'CEDoc Sciences & Techniques' },
+      { id: 'h-3', date: '24/10/2026 15:30', action: 'Avis scientifique Favorable émis (17.5/20)', author: 'Pr. Karim Benali' },
+      { id: 'h-4', date: '25/10/2026 11:00', action: 'Admission officielle sur Liste Principale notifiée', author: 'Direction du CEDoc' },
     ],
   },
   {
-    id: 'app-2024-001-wl',
-    topicId: 'usmba-topic-2024-001',
-    topicCode: 'FST-LISIA-24-01',
+    id: 'app-2026-001-wl',
+    topicId: 'usmba-topic-2026-001',
+    topicCode: 'FST-LISIA-26-01',
     topicTitle: 'Arabic OCR using AI: Deep Learning Architectures for Historical Manuscript Digitization',
     candidateName: 'Oussama Tazi',
     candidateEmail: 'oussama.tazi@etu.usmba.ac.ma',
@@ -855,17 +875,17 @@ export const DEMO_APPLICATIONS: CandidateApplication[] = [
     masterGrade: 15.80,
     masterMention: 'Bien',
     pfeTitle: 'Reconnaissance de caractères manuscrits anciens par Transformers',
-    submissionDate: '2024-10-20',
+    submissionDate: '2026-10-20',
     status: 'waitlist',
     waitlistRank: 1,
-    decisionDate: '2024-10-25',
+    decisionDate: '2026-10-25',
     decisionBy: 'Pr. Karim Benali (Directeur de Thèse)',
     scientificOpinion: {
       recommendation: 'favorable',
       score: 16.2,
       academicAppraisal: 'Très bon parcours. Classé n°1 sur liste d’attente pour éventuel désistement.',
       evaluatorName: 'Pr. Karim Benali',
-      evaluatedAt: '24/10/2024 16:00',
+      evaluatedAt: '24/10/2026 16:00',
     },
     documents: [
       { id: 'doc-wl-1', name: 'CV académique', category: 'cv', fileName: 'CV_Oussama_Tazi.pdf', fileSize: '1.0 Mo', status: 'valid' },
@@ -873,14 +893,14 @@ export const DEMO_APPLICATIONS: CandidateApplication[] = [
       { id: 'doc-wl-3', name: 'Relevés de notes', category: 'transcripts', fileName: 'Notes_Tazi.pdf', fileSize: '2.9 Mo', status: 'valid' },
     ],
     history: [
-      { id: 'h-wl-1', date: '20/10/2024 11:00', action: 'Dossier soumis par le candidat', author: 'Oussama Tazi' },
-      { id: 'h-wl-2', date: '24/10/2024 16:00', action: 'Évaluation scientifique terminée — Classé Liste d’Attente Rang 1', author: 'Pr. Karim Benali' },
+      { id: 'h-wl-1', date: '20/10/2026 11:00', action: 'Dossier soumis par le candidat', author: 'Oussama Tazi' },
+      { id: 'h-wl-2', date: '24/10/2026 16:00', action: 'Évaluation scientifique terminée — Classé Liste d’Attente Rang 1', author: 'Pr. Karim Benali' },
     ],
   },
   {
-    id: 'app-2024-002',
-    topicId: 'usmba-topic-2024-001',
-    topicCode: 'FST-LISIA-24-01',
+    id: 'app-2026-002',
+    topicId: 'usmba-topic-2026-001',
+    topicCode: 'FST-LISIA-26-01',
     topicTitle: 'Arabic OCR using AI: Deep Learning Architectures for Historical Manuscript Digitization',
     candidateName: 'Salma Bennani',
     candidateEmail: 'salma.bennani@gmail.com',
@@ -892,7 +912,7 @@ export const DEMO_APPLICATIONS: CandidateApplication[] = [
     masterGrade: 15.40,
     masterMention: 'Bien',
     pfeTitle: 'Reconnaissance optique de caractères sur documents scannés dégradés',
-    submissionDate: '2024-10-19',
+    submissionDate: '2026-10-19',
     status: 'correction_requested',
     correctionMessage: 'Le relevé de notes du Semestre 3 est incomplet (page verso manquante avec le cachet officiel du doyen).',
     documents: [
@@ -903,14 +923,14 @@ export const DEMO_APPLICATIONS: CandidateApplication[] = [
       { id: 'doc-25', name: 'CIN', category: 'cin', fileName: 'CIN.pdf', fileSize: '700 Ko', status: 'valid' },
     ],
     history: [
-      { id: 'h-21', date: '19/10/2024 16:10', action: 'Dossier soumis par le candidat', author: 'Salma Bennani' },
-      { id: 'h-22', date: '21/10/2024 09:30', action: 'Demande de correction émise : relevé S3 incomplet', author: 'Pr. Karim Benali' },
+      { id: 'h-21', date: '19/10/2026 16:10', action: 'Dossier soumis par le candidat', author: 'Salma Bennani' },
+      { id: 'h-22', date: '21/10/2026 09:30', action: 'Demande de correction émise : relevé S3 incomplet', author: 'Pr. Karim Benali' },
     ],
   },
   {
-    id: 'app-2024-003',
-    topicId: 'usmba-topic-2024-003',
-    topicCode: 'FST-LISIA-24-03',
+    id: 'app-2026-003',
+    topicId: 'usmba-topic-2026-003',
+    topicCode: 'FST-LISIA-26-03',
     topicTitle: 'Detecting Public Security Threats on Social Media: A Multimodal NLP & Graph Neural Network Approach',
     candidateName: 'Mehdi Chraibi',
     candidateEmail: 'mehdi.chraibi@usmba.ac.ma',
@@ -922,7 +942,7 @@ export const DEMO_APPLICATIONS: CandidateApplication[] = [
     masterGrade: 14.85,
     masterMention: 'Assez Bien',
     pfeTitle: 'Détection de discours haineux sur Twitter à l’aide de transformers multilingues',
-    submissionDate: '2024-10-21',
+    submissionDate: '2026-10-21',
     status: 'pending_review',
     documents: [
       { id: 'doc-31', name: 'CV académique', category: 'cv', fileName: 'CV_Chraibi.pdf', fileSize: '1.1 Mo', status: 'valid' },
@@ -931,13 +951,13 @@ export const DEMO_APPLICATIONS: CandidateApplication[] = [
       { id: 'doc-34', name: 'Rapport PFE', category: 'pfe_thesis', fileName: 'PFE_Mehdi.pdf', fileSize: '5.2 Mo', status: 'valid' },
     ],
     history: [
-      { id: 'h-31', date: '21/10/2024 11:20', action: 'Dossier soumis par le candidat', author: 'Mehdi Chraibi' },
+      { id: 'h-31', date: '21/10/2026 11:20', action: 'Dossier soumis par le candidat', author: 'Mehdi Chraibi' },
     ],
   },
   {
-    id: 'app-2024-004',
-    topicId: 'usmba-topic-2024-003',
-    topicCode: 'FST-LISIA-24-03',
+    id: 'app-2026-004',
+    topicId: 'usmba-topic-2026-003',
+    topicCode: 'FST-LISIA-26-03',
     topicTitle: 'Detecting Public Security Threats on Social Media: A Multimodal NLP & Graph Neural Network Approach',
     candidateName: 'Omar Kettani',
     candidateEmail: 'omar.kettani@gmail.com',
@@ -949,24 +969,24 @@ export const DEMO_APPLICATIONS: CandidateApplication[] = [
     masterGrade: 13.90,
     masterMention: 'Passable',
     pfeTitle: 'Création d’un tableau de bord de veille sur les réseaux sociaux',
-    submissionDate: '2024-10-17',
+    submissionDate: '2026-10-17',
     status: 'rejected',
     rejectionReason: 'Profil académique insuffisant dans les prérequis méthodologiques en réseaux de neurones profonds (GNN).',
-    decisionDate: '2024-10-24',
+    decisionDate: '2026-10-24',
     decisionBy: 'Pr. Karim Benali',
     documents: [
       { id: 'doc-41', name: 'CV', category: 'cv', fileName: 'CV_Kettani.pdf', fileSize: '800 Ko', status: 'valid' },
       { id: 'doc-42', name: 'Diplôme', category: 'master_diploma', fileName: 'Master_UM5.pdf', fileSize: '2.0 Mo', status: 'valid' },
     ],
     history: [
-      { id: 'h-41', date: '17/10/2024 18:00', action: 'Dossier soumis par le candidat', author: 'Omar Kettani' },
-      { id: 'h-42', date: '24/10/2024 15:45', action: 'Dossier non retenu — motif notifié', author: 'Pr. Karim Benali', note: 'Prérequis GNN non satisfaits' },
+      { id: 'h-41', date: '17/10/2026 18:00', action: 'Dossier soumis par le candidat', author: 'Omar Kettani' },
+      { id: 'h-42', date: '24/10/2026 15:45', action: 'Dossier non retenu — motif notifié', author: 'Pr. Karim Benali', note: 'Prérequis GNN non satisfaits' },
     ],
   },
   {
-    id: 'app-2024-005',
-    topicId: 'usmba-topic-2024-002',
-    topicCode: 'FST-LISIA-24-02',
+    id: 'app-2026-005',
+    topicId: 'usmba-topic-2026-002',
+    topicCode: 'FST-LISIA-26-02',
     topicTitle: 'Topic Labelling and Hierarchical Semantic Discovery in Unstructured Academic Texts',
     candidateName: 'Nouhaila Tazi',
     candidateEmail: 'nouhaila.tazi@etu.usmba.ac.ma',
@@ -978,9 +998,9 @@ export const DEMO_APPLICATIONS: CandidateApplication[] = [
     masterGrade: 16.70,
     masterMention: 'Très Bien',
     pfeTitle: 'Extraction sémantique et catégorisation thématique de corpus multilingues',
-    submissionDate: '2024-10-16',
+    submissionDate: '2026-10-16',
     status: 'accepted',
-    decisionDate: '2024-10-25',
+    decisionDate: '2026-10-25',
     decisionBy: 'Pr. Amina Berrada',
     documents: [
       { id: 'doc-51', name: 'CV détaillé', category: 'cv', fileName: 'CV_Nouhaila_Tazi.pdf', fileSize: '1.4 Mo', status: 'valid' },
@@ -988,12 +1008,12 @@ export const DEMO_APPLICATIONS: CandidateApplication[] = [
       { id: 'doc-53', name: 'Relevés de notes officiels', category: 'transcripts', fileName: 'Releves_Tazi.pdf', fileSize: '3.0 Mo', status: 'valid' },
     ],
     history: [
-      { id: 'h-51', date: '16/10/2024 10:00', action: 'Dossier soumis par le candidat', author: 'Nouhaila Tazi' },
-      { id: 'h-52', date: '25/10/2024 17:30', action: 'Candidature retenue sur Liste Principale', author: 'Pr. Amina Berrada' },
+      { id: 'h-51', date: '16/10/2026 10:00', action: 'Dossier soumis par le candidat', author: 'Nouhaila Tazi' },
+      { id: 'h-52', date: '25/10/2026 17:30', action: 'Candidature retenue sur Liste Principale', author: 'Pr. Amina Berrada' },
     ],
     physicalReception: {
       received: true,
-      date: '2024-10-27 10:15',
+      date: '27/10/2026 10:15',
       agentName: 'M. Rachid Bennani (Agent CEDoc)',
       verifiedOriginals: ['Baccalauréat original', 'Diplôme de Master original', 'Relevés de notes certifiés'],
     },
@@ -1001,16 +1021,43 @@ export const DEMO_APPLICATIONS: CandidateApplication[] = [
 ];
 
 export const ApplicationService = {
+  getDeletedDraftIds(): Set<string> {
+    try {
+      const raw = localStorage.getItem(V5_KEYS.DELETED_DRAFTS);
+      if (raw) {
+        return new Set(JSON.parse(raw));
+      }
+    } catch (e) {
+      console.warn('Failed to parse deleted draft ids', e);
+    }
+    return new Set<string>();
+  },
+
+  recordDeletedDraftId(id: string): void {
+    try {
+      const ids = this.getDeletedDraftIds();
+      ids.add(id);
+      localStorage.setItem(V5_KEYS.DELETED_DRAFTS, JSON.stringify(Array.from(ids)));
+    } catch (e) {
+      console.warn('Failed to record deleted draft id', e);
+    }
+  },
+
   getApplications(): CandidateApplication[] {
     try {
-      const data = localStorage.getItem(APPLICATIONS_STORAGE_KEY);
-      if (data) {
-        return JSON.parse(data);
+      const raw = localStorage.getItem(APPLICATIONS_STORAGE_KEY);
+      const deletedIds = this.getDeletedDraftIds();
+      if (raw !== null) {
+        const parsed: CandidateApplication[] = JSON.parse(raw);
+        return parsed.filter((app) => !deletedIds.has(app.id));
       }
+      // Initialize with DEMO_APPLICATIONS filtered against deleted drafts
+      const initial = DEMO_APPLICATIONS.filter((app) => !deletedIds.has(app.id));
+      this.saveApplications(initial);
+      return initial;
     } catch {
-      // fallback
+      return DEMO_APPLICATIONS;
     }
-    return DEMO_APPLICATIONS;
   },
 
   saveApplications(apps: CandidateApplication[]): void {
@@ -1050,10 +1097,86 @@ export const ApplicationService = {
     }
   },
 
-  getApplicationsByProfessor(profName: string): CandidateApplication[] {
+  /**
+   * Delete a draft application strictly
+   * Only drafts (isDraft: true or status: 'draft') can be deleted.
+   * Submitted applications can never be deleted.
+   * Cleans up both localStorage and IndexedDB.
+   */
+  deleteDraft(applicationId: string, candidateIdentifier: string): { success: boolean; message: string } {
+    try {
+      const apps = this.getApplications();
+      const index = apps.findIndex((a) => a.id === applicationId);
+      if (index === -1) {
+        return { success: false, message: 'Candidature introuvable.' };
+      }
+
+      const target = apps[index];
+
+      // Strict check: only drafts can be deleted!
+      if (!target.isDraft && target.status !== 'draft') {
+        return { 
+          success: false, 
+          message: 'Impossible de supprimer un dossier déjà officiellement soumis à l’instruction académique.' 
+        };
+      }
+
+      // Check ownership
+      const candEmailNorm = (candidateIdentifier || '').toLowerCase().trim();
+      const isOwner = 
+        !candEmailNorm ||
+        (target.candidateEmail && target.candidateEmail.toLowerCase().trim() === candEmailNorm) ||
+        (target.cne && target.cne.toLowerCase().trim() === candEmailNorm) ||
+        (target.cin && target.cin.toLowerCase().trim() === candEmailNorm);
+
+      if (!isOwner) {
+        return { success: false, message: 'Action non autorisée sur ce dossier.' };
+      }
+
+      // Remove from list
+      apps.splice(index, 1);
+      this.saveApplications(apps);
+
+      // Record in deleted drafts set to prevent resurrection from demo seeds
+      this.recordDeletedDraftId(applicationId);
+
+      // Clean up files in IndexedDB
+      if (target.documents && target.documents.length > 0) {
+        for (const doc of target.documents) {
+          try {
+            LocalFileStorage.deleteDocument(doc.id).catch(() => {});
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      return { success: true, message: 'Brouillon supprimé avec succès.' };
+    } catch (err) {
+      console.error('Error deleting draft:', err);
+      return { success: false, message: 'Une erreur est survenue lors de la suppression du brouillon.' };
+    }
+  },
+
+  /**
+   * Get applications for a thesis director
+   * Strict filtering by topic's professorEmail or exact professorName from stored topics
+   */
+  getApplicationsByProfessor(profEmailOrName: string): CandidateApplication[] {
     const all = this.getApplications();
-    const profTopics = DEMO_TOPICS.filter((t) => t.professorName === profName).map((t) => t.id);
-    return all.filter((app) => profTopics.includes(app.topicId));
+    const allTopics = ThesisTopicService.getTopics();
+    const query = (profEmailOrName || '').toLowerCase().trim();
+    if (!query) return [];
+
+    const profTopicIds = allTopics
+      .filter((t) => {
+        const emailMatch = t.professorEmail && t.professorEmail.toLowerCase().trim() === query;
+        const nameMatch = t.professorName && t.professorName.toLowerCase().trim() === query;
+        return emailMatch || nameMatch;
+      })
+      .map((t) => t.id);
+
+    return all.filter((app) => profTopicIds.includes(app.topicId));
   },
 
   updateStatus(
@@ -1184,8 +1307,8 @@ export const ApplicationService = {
     this.saveApplications(apps);
 
     try {
-      // Find topic to identify professor
-      const targetTopic = DEMO_TOPICS.find((t) => t.id === app.topicId);
+      // Find topic from active topics to identify professor
+      const targetTopic = ThesisTopicService.getTopics().find((t) => t.id === app.topicId);
       
       // Notify candidate
       NotificationService.createNotification({

@@ -13,7 +13,7 @@ export const translations = {
     universityNameShort: 'USMBA — Fès',
     platformTitle: 'Portail du Cycle Doctoral',
     platformSubtitle: 'Plateforme moderne d’accès aux sujets de thèse, pré-candidature et cycle doctoral',
-    academicYearCurrent: 'Année Universitaire 2024/2025',
+    academicYearCurrent: 'Année Universitaire 2026/2027',
     tagDemoData: 'Données de simulation prototype',
     demoNoticeTitle: 'Environnement de prévisualisation et maquettage',
     demoNoticeBody: 'Les sujets présentés ci-dessous sont des exemples réalistes conçus pour valider l’ergonomie et les fonctionnalités du catalogue. Ils ne constituent pas une publication officielle définitive de l’USMBA.',
@@ -27,7 +27,7 @@ export const translations = {
     navRegister: 'S’inscrire',
 
     // Hero Section
-    heroBadge: 'Campagne de Recrutement Doctoral 2024–2025',
+    heroBadge: 'Campagne de Recrutement Doctoral 2026–2027',
     heroTitle: 'Explorez les sujets de thèse & préparez votre candidature',
     heroDescription: 'Consultez librement les thématiques de recherche validées par les laboratoires, CEDoc et le Pôle Doctoral de l’USMBA. Sélectionnez vos sujets d’intérêt sans création préalable de compte.',
     btnExploreTopics: 'Découvrir les sujets de thèse',
@@ -142,7 +142,7 @@ export const translations = {
     universityNameShort: 'جامعة فاس — USMBA',
     platformTitle: 'بوابة سلك الدكتوراه',
     platformSubtitle: 'المنصة الحديثة للاطلاع على مواضيع الأطروحة والترشح المسبق وسلك الدكتوراه',
-    academicYearCurrent: 'السنة الجامعية 2024/2025',
+    academicYearCurrent: 'السنة الجامعية 2026/2027',
     tagDemoData: 'بيانات تجريبية للنموذج الأولي',
     demoNoticeTitle: 'بيئة عرض واختبار تجريبية',
     demoNoticeBody: 'المواضيع المعروضة أدناه هي أمثلة واقعية تهدف لاختبار سهولة الاستخدام ووظائف الدليل. ولا تشكل نشراً رسمياً نهائياً صادراً عن جامعة سيدي محمد بن عبد الله.',
@@ -156,7 +156,7 @@ export const translations = {
     navRegister: 'إنشاء حساب',
 
     // Hero Section
-    heroBadge: 'حملة الترشح لسلك الدكتوراه 2024–2025',
+    heroBadge: 'حملة الترشح لسلك الدكتوراه 2026–2027',
     heroTitle: 'استكشف مواضيع الأطروحة وجهّز ترشيحك بكل سهولة',
     heroDescription: 'اطّلع بحرية تامة على مواضيع البحث المصادق عليها من طرف المختبرات، ومراكز الدراسات، والقطب الجامعي. اختر المواضيع التي تهمك دون الحاجة المسبقة لإنشاء حساب.',
     btnExploreTopics: 'استكشاف مواضيع الأطروحة',

@@ -39,8 +39,10 @@ import {
   Scan,
   Edit3,
   Calendar,
-  AlertTriangle
+  AlertTriangle,
+  Trash2
 } from 'lucide-react';
+import { formatDate, formatDateTime } from '../services/dateUtils';
 
 interface CandidateWorkspaceProps {
   user: AppUser;
@@ -51,6 +53,7 @@ interface CandidateWorkspaceProps {
   cartCount: number;
   onResumeDraft?: (app: CandidateApplication) => void;
   onApplicationUpdated?: (updated: CandidateApplication) => void;
+  onApplicationDeleted?: () => void;
 }
 
 export const CandidateWorkspace: React.FC<CandidateWorkspaceProps> = ({
@@ -62,6 +65,7 @@ export const CandidateWorkspace: React.FC<CandidateWorkspaceProps> = ({
   cartCount,
   onResumeDraft,
   onApplicationUpdated,
+  onApplicationDeleted,
 }) => {
   const isRtl = language === 'ar';
   const [activeTab, setActiveTab] = useState<'applications' | 'profile'>('applications');
@@ -77,6 +81,36 @@ export const CandidateWorkspace: React.FC<CandidateWorkspaceProps> = ({
   );
 
   const activeApp = userApplications.find((a) => a.id === selectedAppId) || userApplications[0];
+
+  // Draft deletion modal and toast feedback state
+  const [draftToDelete, setDraftToDelete] = useState<CandidateApplication | null>(null);
+  const [deleteDraftFeedback, setDeleteDraftFeedback] = useState<string | null>(null);
+
+  const handleConfirmDeleteDraft = () => {
+    if (!draftToDelete) return;
+    const targetId = draftToDelete.id;
+    const res = ApplicationService.deleteDraft(targetId, user.email);
+    if (res.success) {
+      setDeleteDraftFeedback(isRtl ? 'تم حذف المسودة بنجاح' : 'Brouillon supprimé avec succès.');
+      setTimeout(() => setDeleteDraftFeedback(null), 4000);
+      const remaining = userApplications.filter((a) => a.id !== targetId);
+      if (selectedAppId === targetId) {
+        setSelectedAppId(remaining[0]?.id || '');
+      }
+      if (onApplicationDeleted) {
+        onApplicationDeleted();
+      } else if (onApplicationUpdated) {
+        const dummy: CandidateApplication = {
+          ...draftToDelete,
+          id: targetId,
+          status: 'draft',
+          isDraft: true,
+        };
+        onApplicationUpdated(dummy);
+      }
+    }
+    setDraftToDelete(null);
+  };
 
   // Reusable Profile State
   const [profile, setProfile] = useState<CandidateProfile>(() => {
@@ -194,15 +228,19 @@ export const CandidateWorkspace: React.FC<CandidateWorkspaceProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800">
-              Espace Candidat Sécurisé
+              {isRtl ? 'فضاء المترشح' : 'Espace Candidat'}
             </span>
-            <span className="text-xs text-slate-400">· USMBA 2024/2025</span>
+            <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+              {profile.firstName || user.name}
+            </span>
           </div>
-          <h2 className="text-lg sm:text-xl font-bold text-slate-900 mt-1">
-            Bonjour, {profile.firstName || user.name}
-          </h2>
+          <h1 className="text-lg sm:text-xl font-bold text-slate-900 mt-1">
+            {isRtl ? 'فضاء المترشح' : 'Mon espace candidat'}
+          </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Suivi indépendant de vos candidatures, pièces justificatives et profil réutilisable.
+            {isRtl 
+              ? 'تتبع ملفات الترشيح، الوثائق، وإجراءات التسجيل' 
+              : "Suivez vos candidatures, vos documents et vos démarches d'inscription"}
           </p>
         </div>
 
@@ -298,14 +336,29 @@ export const CandidateWorkspace: React.FC<CandidateWorkspaceProps> = ({
                     >
                       <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1">
                         <span className="font-mono font-bold text-slate-700">{app.topicCode}</span>
-                        <span>{app.submissionDate}</span>
+                        <span>{formatDate(app.submissionDate, language)}</span>
                       </div>
                       <h4 className="text-xs font-bold text-slate-900 line-clamp-2 leading-snug mb-2">
                         {app.topicTitle}
                       </h4>
                       <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                         {getStatusBadge(app.status, app.isDraft)}
-                        <ChevronRight className="w-4 h-4 text-slate-400 rtl:rotate-180" />
+                        <div className="flex items-center gap-1.5">
+                          {(app.isDraft || app.status === 'draft') && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDraftToDelete(app);
+                              }}
+                              title={isRtl ? 'حذف المسودة' : 'Supprimer le brouillon'}
+                              className="p-1 rounded text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <ChevronRight className="w-4 h-4 text-slate-400 rtl:rotate-180" />
+                        </div>
                       </div>
                     </div>
                   );
@@ -333,21 +386,36 @@ export const CandidateWorkspace: React.FC<CandidateWorkspaceProps> = ({
                 </div>
 
                 {/* Draft Resumption Alert */}
-                {activeApp.isDraft && (
-                  <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 flex items-center justify-between gap-3 text-xs">
+                {(activeApp.isDraft || activeApp.status === 'draft') && (
+                  <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                     <div>
-                      <div className="font-bold">Brouillon non soumis</div>
-                      <div className="text-[11px] text-amber-700">Vous vous êtes arrêté à l’étape {activeApp.draftStep || 1} / 5.</div>
+                      <div className="font-bold flex items-center gap-1.5">
+                        <Edit3 className="w-4 h-4 text-amber-600" />
+                        <span>Brouillon non soumis</span>
+                      </div>
+                      <div className="text-[11px] text-amber-700 mt-0.5">
+                        Vous vous êtes arrêté à l’étape {activeApp.draftStep || 1} / 5. Les informations saisies sont enregistrées localement.
+                      </div>
                     </div>
-                    {onResumeDraft && (
+                    <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
                       <button
                         type="button"
-                        onClick={() => onResumeDraft(activeApp)}
-                        className="px-3.5 py-1.5 rounded-lg bg-amber-800 hover:bg-amber-900 text-white font-bold text-xs cursor-pointer"
+                        onClick={() => setDraftToDelete(activeApp)}
+                        className="px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-800 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
                       >
-                        Reprendre la saisie
+                        <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                        <span>Supprimer le brouillon</span>
                       </button>
-                    )}
+                      {onResumeDraft && (
+                        <button
+                          type="button"
+                          onClick={() => onResumeDraft(activeApp)}
+                          className="px-3.5 py-1.5 rounded-lg bg-amber-800 hover:bg-amber-900 text-white font-bold text-xs cursor-pointer shadow-xs transition-colors"
+                        >
+                          Reprendre la saisie
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -371,8 +439,8 @@ export const CandidateWorkspace: React.FC<CandidateWorkspaceProps> = ({
                         <span className="text-slate-600">Date limite impérative d'inscription : </span>
                         <strong className="font-mono text-emerald-900 font-bold">
                           {activeApp.registrationDeadline 
-                            ? new Date(activeApp.registrationDeadline).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-                            : 'Date limite fixée par la campagne'}
+                            ? formatDate(activeApp.registrationDeadline, language)
+                            : (isRtl ? 'تاريخ يحدد لاحقاً' : 'À définir')}
                         </strong>
                       </div>
                       <button
@@ -457,7 +525,7 @@ export const CandidateWorkspace: React.FC<CandidateWorkspaceProps> = ({
                     </p>
                     {activeApp.decisionBy && (
                       <div className="text-[11px] text-slate-400 pt-1">
-                        Décision notifiée par {activeApp.decisionBy} le {activeApp.decisionDate || activeApp.submissionDate}
+                        Décision notifiée par {activeApp.decisionBy} le {formatDate(activeApp.decisionDate || activeApp.submissionDate, language)}
                       </div>
                     )}
                   </div>
@@ -837,6 +905,59 @@ export const CandidateWorkspace: React.FC<CandidateWorkspaceProps> = ({
           }}
           language={language}
         />
+      )}
+
+      {/* Confirmation Modal: Delete Draft */}
+      {draftToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div className="space-y-1.5 flex-1">
+                <h3 className="text-base font-bold text-slate-900">
+                  {isRtl ? 'حذف المسودة' : 'Supprimer le brouillon'}
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  {isRtl
+                    ? 'هل أنت متأكد من رغبتك في حذف هذه المسودة؟ سيتم حذف جميع المعلومات المدخلة في هذا الترشيح نهائياً.'
+                    : 'Voulez-vous vraiment supprimer ce brouillon ? Toutes les informations saisies dans cette candidature seront définitivement supprimées.'}
+                </p>
+                <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700">
+                  <span className="font-mono font-bold text-slate-900">{draftToDelete.topicCode}</span>
+                  <div className="line-clamp-1 text-[11px] text-slate-600 mt-0.5">{draftToDelete.topicTitle}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setDraftToDelete(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                {isRtl ? 'إلغاء' : 'Annuler'}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteDraft}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{isRtl ? 'حذف نهائي' : 'Supprimer définitivement'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Temporary Toast Feedback */}
+      {deleteDraftFeedback && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white text-xs font-medium px-4 py-3 rounded-xl shadow-xl flex items-center gap-2.5 border border-slate-800 animate-in slide-in-from-bottom-3 duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{deleteDraftFeedback}</span>
+        </div>
       )}
     </div>
   );

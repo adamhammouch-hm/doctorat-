@@ -12,6 +12,7 @@ import { NotificationService } from './notificationService';
 import { AdminConfigService } from './adminConfigService';
 import { AdmissionWaitlistService } from './admissionWaitlistService';
 import { LocalFileStorage } from './localFileStorage';
+import { V5_KEYS } from './dataMigrationService';
 import { 
   ThesisTopic, 
   CandidateApplication, 
@@ -190,7 +191,7 @@ export const DataBackupService = {
         name: 'Youssef El Amrani (Candidat Test)',
         role: 'candidate',
         passwordHash: 'Doctorat2025!',
-        createdAt: '2024-10-15T09:30:00Z',
+        createdAt: '2026-10-15T09:30:00Z',
         title: 'Candidat au Doctorat',
         department: 'Informatique & Intelligence Artificielle',
       },
@@ -200,7 +201,7 @@ export const DataBackupService = {
         name: 'Pr. Karim Benali (Directeur de Thèse Test)',
         role: 'thesis_director',
         passwordHash: 'Doctorat2025!',
-        createdAt: '2024-09-01T10:00:00Z',
+        createdAt: '2026-09-01T10:00:00Z',
         title: 'Professeur de l’Enseignement Supérieur (PES)',
         institution: 'Faculté des Sciences et Techniques (FST) de Fès',
         laboratory: 'Laboratoire Systèmes Intelligents & Applications (LISIA)',
@@ -212,7 +213,7 @@ export const DataBackupService = {
         name: 'Pr. Mostafa Bennani (Directeur de Structure Test)',
         role: 'structure_director',
         passwordHash: 'Doctorat2025!',
-        createdAt: '2024-09-01T08:00:00Z',
+        createdAt: '2026-09-01T08:00:00Z',
         title: 'Directeur du CEDoc Sciences & Technologies',
         institution: 'Université Sidi Mohamed Ben Abdellah (USMBA)',
         laboratory: 'Direction des Centres d’Études Doctorales',
@@ -225,8 +226,13 @@ export const DataBackupService = {
     // 3. Reset applications to demo list
     ApplicationService.saveApplications(DEMO_APPLICATIONS);
 
-    // 4. Reset waitlist proposals
+    // 4. Reset waitlist proposals and deleted drafts tracking
     AdmissionWaitlistService.saveProposals([]);
+    try {
+      localStorage.removeItem(V5_KEYS.DELETED_DRAFTS);
+    } catch {
+      // ignore
+    }
 
     // 5. Clean up IndexedDB documents
     try {

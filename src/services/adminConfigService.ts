@@ -13,28 +13,33 @@ import {
   ThesisTopic 
 } from '../types';
 
-const CAMPAIGN_STORAGE_KEY = 'usmba_campaign_config_v2';
-const DOCUMENTS_CONFIG_STORAGE_KEY = 'usmba_docs_config_v2';
-const TOPICS_OVERRIDE_STORAGE_KEY = 'usmba_topics_overrides_v2';
+import { V5_KEYS } from './dataMigrationService';
+import { getCurrentAcademicYear } from './dateUtils';
+
+const CAMPAIGN_STORAGE_KEY = V5_KEYS.CAMPAIGN;
+const DOCUMENTS_CONFIG_STORAGE_KEY = 'usmba_docs_config_v5';
+const TOPICS_OVERRIDE_STORAGE_KEY = 'usmba_topics_overrides_v5';
+
+const CURRENT_YEAR = getCurrentAcademicYear();
 
 export const DEFAULT_CAMPAIGN: CampaignConfig = {
-  id: 'campaign-2024-2025',
-  academicYear: '2024/2025',
-  title: 'Campagne Doctorale USMBA 2024/2025 · Session d’Automne',
-  openingDate: '2024-10-01',
-  closingDate: '2024-11-25',
-  deliberationDate: '2024-12-05',
-  resultsDate: '2024-12-10',
-  registrationDeadline: '2024-12-20T23:59:59',
+  id: `campaign-${CURRENT_YEAR.replace('/', '-')}`,
+  academicYear: CURRENT_YEAR,
+  title: `Campagne Doctorale USMBA ${CURRENT_YEAR} · Session Principale`,
+  openingDate: '2026-10-01',
+  closingDate: '2026-11-25',
+  deliberationDate: '2026-12-05',
+  resultsDate: '2026-12-10',
+  registrationDeadline: '2026-12-20T23:59:59',
   registrationDaysAllowed: 10,
-  physicalDepositDeadline: '2024-12-25',
+  physicalDepositDeadline: '2026-12-25',
   status: 'active',
   maxApplicationsPerCandidate: 3,
   deadlineHistory: [
     {
-      date: '10/10/2024 09:00',
-      previousDeadline: '2024-12-15T23:59:59',
-      newDeadline: '2024-12-20T23:59:59',
+      date: '2026-10-10T09:00:00.000Z',
+      previousDeadline: '2026-12-15T23:59:59',
+      newDeadline: '2026-12-20T23:59:59',
       reason: 'Calendrier académique initial fixé par le conseil du CEDoc',
       modifiedBy: 'Pr. Mostafa Bennani (Directeur du CEDoc)',
     },

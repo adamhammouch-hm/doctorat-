@@ -14,12 +14,13 @@
  */
 
 import { AppUser, AppRole, AuthAccount } from '../types';
+import { V5_KEYS } from './dataMigrationService';
 
-const STORAGE_ACCOUNTS_KEY = 'usmba_auth_accounts_v3';
-const STORAGE_SESSION_KEY = 'usmba_active_session_v3';
+const STORAGE_ACCOUNTS_KEY = V5_KEYS.ACCOUNTS;
+const STORAGE_SESSION_KEY = V5_KEYS.SESSION;
 
 // Default initial accounts including the 3 required test accounts
-const SEEDED_ACCOUNTS: AuthAccount[] = [
+export const SEEDED_ACCOUNTS: AuthAccount[] = [
   // 1. Official Test Candidate
   {
     id: 'user-test-cand',
@@ -27,7 +28,7 @@ const SEEDED_ACCOUNTS: AuthAccount[] = [
     name: 'Youssef El Amrani (Candidat Test)',
     role: 'candidate',
     passwordHash: 'Doctorat2025!',
-    createdAt: '2024-10-15T09:30:00Z',
+    createdAt: '2026-10-15T09:30:00.000Z',
     title: 'Candidat au Doctorat',
     department: 'Informatique & Intelligence Artificielle',
   },
@@ -38,7 +39,7 @@ const SEEDED_ACCOUNTS: AuthAccount[] = [
     name: 'Pr. Karim Benali (Directeur de Thèse Test)',
     role: 'thesis_director',
     passwordHash: 'Doctorat2025!',
-    createdAt: '2024-09-01T10:00:00Z',
+    createdAt: '2026-09-01T10:00:00.000Z',
     title: 'Professeur de l’Enseignement Supérieur (PES)',
     institution: 'Faculté des Sciences et Techniques (FST) de Fès',
     laboratory: 'Laboratoire Systèmes Intelligents & Applications (LISIA)',
@@ -51,7 +52,7 @@ const SEEDED_ACCOUNTS: AuthAccount[] = [
     name: 'Pr. Mostafa Bennani (Directeur de Structure Test)',
     role: 'structure_director',
     passwordHash: 'Doctorat2025!',
-    createdAt: '2024-08-15T08:00:00Z',
+    createdAt: '2026-08-15T08:00:00.000Z',
     title: 'Directeur du CEDoc Sciences & Technologies',
     institution: 'Université Sidi Mohamed Ben Abdellah (USMBA)',
     laboratory: 'Centre d’Études Doctorales & Pôle Doctoral',
@@ -64,7 +65,7 @@ const SEEDED_ACCOUNTS: AuthAccount[] = [
     name: 'Salma Bennani',
     role: 'candidate',
     passwordHash: 'Doctorat2025!',
-    createdAt: '2024-10-20T11:00:00Z',
+    createdAt: '2026-10-20T11:00:00.000Z',
     title: 'Candidate au Doctorat',
     department: 'Sciences des Données',
   },
@@ -74,7 +75,7 @@ const SEEDED_ACCOUNTS: AuthAccount[] = [
     name: 'Pr. Amina Berrada',
     role: 'thesis_director',
     passwordHash: 'Doctorat2025!',
-    createdAt: '2024-09-05T14:00:00Z',
+    createdAt: '2026-09-05T14:00:00.000Z',
     title: 'Professeur Habilité (PH)',
     institution: 'Faculté des Sciences et Techniques (FST)',
     laboratory: 'Laboratoire Systèmes Intelligents & Applications (LISIA)',

@@ -210,12 +210,15 @@ export const StructureDirectorWorkspace: React.FC<StructureDirectorWorkspaceProp
           <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 uppercase tracking-wider mb-1">
             <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
             <span>Direction de Structure · Arbitrage & Supervision</span>
+            <span className="text-[11px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md normal-case border border-slate-200">
+              {currentUserName}
+            </span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-            {currentUserName}
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">
+            Espace directeur de structure
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Directeur du Centre d'Études Doctorales (CEDoc) & Pôle Doctoral · Université Sidi Mohamed Ben Abdellah
+            Supervision des sujets, des validations, des admissions et des inscriptions
           </p>
         </div>
 

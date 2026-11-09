@@ -83,7 +83,7 @@ export const ProcedureGuideModal: React.FC<ProcedureGuideModalProps> = ({
                 Guide des Candidatures Doctorales
               </h2>
               <p className="text-xs text-slate-500">
-                USMBA · Cycle Doctoral 2024–2025
+                USMBA · Cycle Doctoral 2026–2027
               </p>
             </div>
           </div>

@@ -28,7 +28,11 @@ import {
 import { AuthService } from './services/authService';
 import { NotificationService } from './services/notificationService';
 import { AdmissionWaitlistService } from './services/admissionWaitlistService';
+import { DataMigrationService } from './services/dataMigrationService';
 import { getTranslation } from './services/i18n';
+
+// Ensure data schema migration to v5 runs synchronously before application state initialization
+DataMigrationService.runMigrationIfNeeded();
 import { Header } from './components/Header';
 import { CatalogFilterBar } from './components/CatalogFilterBar';
 import { TopicCard } from './components/TopicCard';
@@ -545,6 +549,7 @@ export default function App() {
                 cartCount={cartTopicIds.length}
                 onResumeDraft={handleResumeDraft}
                 onApplicationUpdated={(_updated) => setApplications(ApplicationService.getApplications())}
+                onApplicationDeleted={() => setApplications(ApplicationService.getApplications())}
               />
             )}
           </div>

@@ -20,8 +20,9 @@ import { CandidateApplication, ThesisTopic, WaitlistPromotionProposal } from '..
 import { ApplicationService } from './thesisService';
 import { NotificationService } from './notificationService';
 import { AdminConfigService } from './adminConfigService';
+import { V5_KEYS } from './dataMigrationService';
 
-const STORAGE_PROPOSALS_KEY = 'usmba_waitlist_proposals_v1';
+const STORAGE_PROPOSALS_KEY = V5_KEYS.PROPOSALS;
 
 export const AdmissionWaitlistService = {
   /**

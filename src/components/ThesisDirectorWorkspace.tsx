@@ -18,6 +18,7 @@ import {
   Language, 
   ScientificOpinion 
 } from '../types';
+import { formatDate } from '../services/dateUtils';
 import { ApplicationReviewModal } from './ApplicationReviewModal';
 import { TopicProposalModal } from './TopicProposalModal';
 import { 
@@ -79,12 +80,14 @@ export const ThesisDirectorWorkspace: React.FC<ThesisDirectorWorkspaceProps> = (
   const [isTopicModalOpen, setIsTopicModalOpen] = useState(false);
   const [editingTopic, setEditingTopic] = useState<ThesisTopic | null>(null);
 
-  // Topics under this thesis director
+  // Topics strictly assigned to this thesis director
   const myTopics = useMemo(() => {
+    const userEmailNorm = (currentUserEmail || '').toLowerCase().trim();
+    const userNameNorm = (currentUserName || '').toLowerCase().trim();
     return topics.filter((t) => {
-      const emailMatch = currentUserEmail && t.professorEmail && t.professorEmail.toLowerCase() === currentUserEmail.toLowerCase();
-      const nameMatch = currentUserName && t.professorName.toLowerCase().includes(currentUserName.toLowerCase().split(' ')[1] || 'benali');
-      return emailMatch || nameMatch || t.id.includes('LISIA');
+      const emailMatch = userEmailNorm && t.professorEmail && t.professorEmail.toLowerCase().trim() === userEmailNorm;
+      const nameMatch = userNameNorm && t.professorName && t.professorName.toLowerCase().trim() === userNameNorm;
+      return Boolean(emailMatch || nameMatch);
     });
   }, [topics, currentUserName, currentUserEmail]);
 
@@ -139,12 +142,15 @@ export const ThesisDirectorWorkspace: React.FC<ThesisDirectorWorkspaceProps> = (
           <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 uppercase tracking-wider mb-1">
             <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
             <span>Espace Académique · Directeur de thèse</span>
+            <span className="text-[11px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md normal-case border border-slate-200">
+              {currentUserName}
+            </span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
-            {currentUserName}
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">
+            Espace directeur de thèse
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Professeur & Directeur de thèse · Structure : Laboratoire Systèmes Intelligents & Applications (LISIA) · FST Fès
+            Vos sujets de thèse et les candidatures à examiner
           </p>
         </div>
 
@@ -396,7 +402,7 @@ export const ThesisDirectorWorkspace: React.FC<ThesisDirectorWorkspaceProps> = (
                     <div className="text-[11px] text-slate-500 space-y-0.5 pt-1">
                       <div><strong>Domaine :</strong> {topic.domain}</div>
                       <div><strong>Places :</strong> {topic.spotsAvailable} · <strong>Candidatures reçues :</strong> {topic.applicantsCount}</div>
-                      <div><strong>Date limite :</strong> {topic.submissionDeadline}</div>
+                      <div><strong>Date limite :</strong> {formatDate(topic.submissionDeadline, _language)}</div>
                     </div>
 
                     {/* Electronic signature notice if approved */}

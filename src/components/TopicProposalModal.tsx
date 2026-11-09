@@ -7,6 +7,7 @@
 
 import React, { useState } from 'react';
 import { ThesisTopic, Language } from '../types';
+import { getCurrentAcademicYear } from '../services/dateUtils';
 import { 
   X, 
   BookOpen, 
@@ -43,10 +44,10 @@ export const TopicProposalModal: React.FC<TopicProposalModalProps> = ({
   const [scientificDescriptionAr, setScientificDescriptionAr] = useState(existingTopic?.scientificDescriptionAr || '');
   const [domain, setDomain] = useState(existingTopic?.domain || 'Informatique & Intelligence Artificielle');
   const [specialty, setSpecialty] = useState(existingTopic?.specialty || 'Systèmes Intelligents');
-  const [academicYear, setAcademicYear] = useState(existingTopic?.academicYear || '2024/2025');
+  const [academicYear, setAcademicYear] = useState(existingTopic?.academicYear || getCurrentAcademicYear());
   const [spotsAvailable, setSpotsAvailable] = useState<number>(existingTopic?.spotsAvailable || 1);
   const [fundingType, setFundingType] = useState<ThesisTopic['fundingType']>(existingTopic?.fundingType || 'projet_recherche');
-  const [submissionDeadline, setSubmissionDeadline] = useState(existingTopic?.submissionDeadline || '2024-12-15');
+  const [submissionDeadline, setSubmissionDeadline] = useState(existingTopic?.submissionDeadline || '2026-11-25');
 
   // Criteria & Skills
   const [criteria, setCriteria] = useState<string[]>(
