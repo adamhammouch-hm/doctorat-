@@ -25,6 +25,7 @@ export const V5_KEYS = {
   CAMPAIGN: 'usmba_campaign_config_v5',
   PROPOSALS: 'usmba_waitlist_proposals_v5',
   DELETED_DRAFTS: 'usmba_deleted_draft_ids_v5',
+  AUDIT_LOGS: 'usmba_audit_logs_v5',
 };
 
 // Legacy keys for migration

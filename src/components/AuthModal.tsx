@@ -376,6 +376,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       <span><strong>Directeur de structure :</strong> directeur.structure.test@usmba.ma</span>
                       <span className="text-[10px] text-emerald-700 font-semibold">Choisir</span>
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => handleFillTestAccount('admin.test@usmba.ma')}
+                      className="w-full text-left p-1.5 rounded bg-white hover:bg-emerald-50 border border-slate-200 flex items-center justify-between cursor-pointer"
+                    >
+                      <span><strong>Administrateur :</strong> admin.test@usmba.ma</span>
+                      <span className="text-[10px] text-emerald-700 font-semibold">Choisir</span>
+                    </button>
                   </div>
                 </div>
               )}

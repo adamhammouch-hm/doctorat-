@@ -43,6 +43,7 @@ import { ProcedureGuideModal } from './components/ProcedureGuideModal';
 import { ThesisDirectorWorkspace } from './components/ThesisDirectorWorkspace';
 import { StructureDirectorWorkspace } from './components/StructureDirectorWorkspace';
 import { CandidateWorkspace } from './components/CandidateWorkspace';
+import { AdminWorkspace } from './components/AdminWorkspace';
 import { ApplicationFormModal } from './components/ApplicationFormModal';
 import { NotificationCenterModal } from './components/NotificationCenterModal';
 import { Footer } from './components/Footer';
@@ -524,7 +525,7 @@ export default function App() {
               />
             )}
 
-            {(currentUser.role === 'structure_director' || (currentUser.role as any) === 'admin') && (
+            {currentUser.role === 'structure_director' && (
               <StructureDirectorWorkspace
                 topics={topics}
                 applications={applications}
@@ -536,6 +537,19 @@ export default function App() {
                 currentUserName={currentUser.name}
                 currentUserEmail={currentUser.email}
                 language={language}
+              />
+            )}
+
+            {currentUser.role === 'admin' && (
+              <AdminWorkspace
+                currentUser={currentUser}
+                topics={topics}
+                applications={applications}
+                language={language}
+                onRefreshData={() => {
+                  refreshTopics();
+                  setApplications(ApplicationService.getApplications());
+                }}
               />
             )}
 

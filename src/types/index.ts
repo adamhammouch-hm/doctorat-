@@ -11,12 +11,13 @@
 export type Language = 'fr' | 'ar';
 
 /**
- * EXACT THREE PROFILES REQUIRED:
- * - candidate: Candidat au doctorat
- * - thesis_director: Directeur de thèse & Encadrant (rôle unique)
- * - structure_director: Directeur de structure (Laboratoire, CEDoc, Pôle doctoral)
+ * EXACT FOUR PROFILES REQUIRED:
+ * 1. candidate: Candidat au doctorat
+ * 2. thesis_director: Directeur de thèse & Encadrant (rôle unique)
+ * 3. structure_director: Directeur de structure (Laboratoire, CEDoc, Pôle doctoral)
+ * 4. admin: Administrateur de la plateforme et gouvernance des données
  */
-export type AppRole = 'candidate' | 'thesis_director' | 'structure_director';
+export type AppRole = 'candidate' | 'thesis_director' | 'structure_director' | 'admin';
 
 export interface AppUser {
   id: string;
@@ -27,6 +28,8 @@ export interface AppUser {
   department?: string;
   institution?: string;
   laboratory?: string;
+  isActive?: boolean;
+  lastLoginAt?: string;
 }
 
 export interface AuthAccount {
@@ -42,6 +45,8 @@ export interface AuthAccount {
   laboratory?: string;
   resetToken?: string;
   resetTokenExpiry?: number;
+  isActive?: boolean;
+  lastLoginAt?: string;
 }
 
 export type ValidationStepStatus = 'valid' | 'pending' | 'revision_requested' | 'rejected';
@@ -397,4 +402,25 @@ export interface WaitlistPromotionProposal {
   directorNotes?: string;
   resolvedAt?: string;
   resolvedBy?: string;
+}
+
+/**
+ * Audit Log Entry for Platform Governance & Traceability
+ */
+export interface AuditLogEntry {
+  id: string;
+  timestamp: string; // ISO 8601
+  authorName: string;
+  authorEmail: string;
+  authorRole: AppRole;
+  action: string;
+  category: 'auth' | 'topic' | 'application' | 'decision' | 'waitlist' | 'system' | 'campaign' | 'user_management';
+  targetEntityId?: string;
+  targetEntityType?: string;
+  oldValue?: string;
+  newValue?: string;
+  comment?: string;
+  details?: string;
+  userEmail?: string;
+  userRole?: AppRole;
 }

@@ -34,7 +34,7 @@ export const DEFAULT_CAMPAIGN: CampaignConfig = {
   registrationDaysAllowed: 10,
   physicalDepositDeadline: '2026-12-25',
   status: 'active',
-  maxApplicationsPerCandidate: 3,
+  maxApplicationsPerCandidate: 1,
   deadlineHistory: [
     {
       date: '2026-10-10T09:00:00.000Z',

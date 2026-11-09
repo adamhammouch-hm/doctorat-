@@ -99,11 +99,36 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Check candidature eligibility (strict single application per candidate rule)
+  const [eligibility, setEligibility] = useState(() => 
+    ApplicationService.canCandidateApply({
+      id: user.id,
+      email: user.email,
+      cin: profile.cin,
+      cne: profile.cne,
+    })
+  );
+
+  const isEditingCurrentApp = Boolean(
+    existingApplication &&
+    (existingApplication.id === eligibility.existingDraftId ||
+     existingApplication.id === eligibility.existingApplication?.id)
+  );
+
+  const isBlocked = !isEditingCurrentApp && !eligibility.canApply;
+
+  const handleDeleteOldDraftAndContinue = () => {
+    if (eligibility.existingDraftId) {
+      ApplicationService.deleteDraft(eligibility.existingDraftId, user.email);
+      setEligibility({ canApply: true });
+    }
+  };
+
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-save debounced whenever fields change
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || isBlocked) return;
 
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
@@ -116,11 +141,63 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
     return () => {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     };
-  }, [profile, statementOfPurpose, scientificAlignment, documents, currentStep]);
+  }, [profile, statementOfPurpose, scientificAlignment, documents, currentStep, isBlocked]);
 
   if (!isOpen) return null;
 
+  if (isBlocked) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+        <div className="bg-white rounded-xl max-w-lg w-full shadow-2xl border border-slate-200 p-6 space-y-4">
+          <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+            <ShieldAlert className="w-6 h-6" />
+          </div>
+          <div className="text-center space-y-1">
+            <h3 className="text-base font-bold text-slate-900">
+              Réglementation USMBA — Candidature Unique
+            </h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              {eligibility.reason}
+            </p>
+          </div>
+          {eligibility.existingApplication && (
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1">
+              <div className="font-mono font-bold text-slate-700">
+                {eligibility.existingApplication.topicCode}
+              </div>
+              <div className="text-slate-900 font-medium">
+                {eligibility.existingApplication.topicTitle}
+              </div>
+              <div className="text-[11px] text-slate-500">
+                Statut : {eligibility.hasDraft ? 'Brouillon en cours' : 'Dossier transmis'} · Date : {eligibility.existingApplication.submissionDate}
+              </div>
+            </div>
+          )}
+          <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2">
+            {eligibility.hasDraft && eligibility.existingDraftId && (
+              <button
+                type="button"
+                onClick={handleDeleteOldDraftAndContinue}
+                className="px-3.5 py-2 text-xs font-semibold rounded-lg text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 cursor-pointer"
+              >
+                Supprimer l'ancien brouillon et postuler ici
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-xs font-bold rounded-lg text-white bg-slate-800 hover:bg-slate-900 cursor-pointer"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const saveDraftSilently = () => {
+    if (isBlocked) return;
     ProfileService.saveProfile(profile);
 
     const draftApp: CandidateApplication = {

@@ -9,9 +9,9 @@ import { V5_KEYS } from './dataMigrationService';
 import { LocalFileStorage } from './localFileStorage';
 import { getCurrentAcademicYear } from './dateUtils';
 
-// Default configuration based on debate consensus (configurable by university)
+// Strict USMBA rule: exactly 1 thesis topic per candidate
 export const DEFAULT_CART_CONFIG: CartConfig = {
-  maxSelectableTopics: 3,
+  maxSelectableTopics: 1,
 };
 
 const CART_STORAGE_KEY = 'usmba_gcd_cart_v1';
@@ -787,6 +787,7 @@ export function filterAndSortTopics(topics: ThesisTopic[], filters: TopicFilters
 
 import { CandidateApplication, ApplicationDocument, ScientificOpinion } from '../types';
 import { NotificationService } from './notificationService';
+import { AuditLogService } from './auditLogService';
 
 const APPLICATIONS_STORAGE_KEY = V5_KEYS.APPLICATIONS;
 
@@ -1101,10 +1102,15 @@ export const ApplicationService = {
    * Delete a draft application strictly
    * Only drafts (isDraft: true or status: 'draft') can be deleted.
    * Submitted applications can never be deleted.
-   * Cleans up both localStorage and IndexedDB.
+   * Cleans up localStorage and safely removes unreferenced IndexedDB files.
    */
   deleteDraft(applicationId: string, candidateIdentifier: string): { success: boolean; message: string } {
     try {
+      const candNorm = (candidateIdentifier || '').toLowerCase().trim();
+      if (!candNorm) {
+        return { success: false, message: 'Action non autorisée : identifiant candidat manquant.' };
+      }
+
       const apps = this.getApplications();
       const index = apps.findIndex((a) => a.id === applicationId);
       if (index === -1) {
@@ -1121,16 +1127,15 @@ export const ApplicationService = {
         };
       }
 
-      // Check ownership
-      const candEmailNorm = (candidateIdentifier || '').toLowerCase().trim();
+      // Check ownership strictly against candidateIdentifier
       const isOwner = 
-        !candEmailNorm ||
-        (target.candidateEmail && target.candidateEmail.toLowerCase().trim() === candEmailNorm) ||
-        (target.cne && target.cne.toLowerCase().trim() === candEmailNorm) ||
-        (target.cin && target.cin.toLowerCase().trim() === candEmailNorm);
+        (target.candidateEmail && target.candidateEmail.toLowerCase().trim() === candNorm) ||
+        (target.cne && target.cne.toLowerCase().trim() === candNorm) ||
+        (target.cin && target.cin.toLowerCase().trim() === candNorm) ||
+        (target.candidateId && target.candidateId.toLowerCase().trim() === candNorm);
 
       if (!isOwner) {
-        return { success: false, message: 'Action non autorisée sur ce dossier.' };
+        return { success: false, message: 'Action non autorisée : ce brouillon ne vous appartient pas.' };
       }
 
       // Remove from list
@@ -1140,15 +1145,33 @@ export const ApplicationService = {
       // Record in deleted drafts set to prevent resurrection from demo seeds
       this.recordDeletedDraftId(applicationId);
 
-      // Clean up files in IndexedDB
+      // Clean up files in IndexedDB ONLY if not referenced by any remaining application
       if (target.documents && target.documents.length > 0) {
         for (const doc of target.documents) {
-          try {
-            LocalFileStorage.deleteDocument(doc.id).catch(() => {});
-          } catch {
-            // ignore
+          const isReferencedElsewhere = apps.some((other) =>
+            other.documents?.some((d) => d.id === doc.id || (doc.storageRef && d.storageRef === doc.storageRef))
+          );
+          if (!isReferencedElsewhere) {
+            try {
+              LocalFileStorage.deleteDocument(doc.id).catch(() => {});
+            } catch {
+              // ignore
+            }
           }
         }
+      }
+
+      // Record in Audit Log
+      try {
+        AuditLogService.log({
+          action: 'SUPPRESSION_BROUILLON',
+          userEmail: target.candidateEmail || candNorm,
+          userRole: 'candidate',
+          details: `Suppression du brouillon ${target.id} pour le sujet ${target.topicCode || target.topicId}`,
+          targetId: target.id,
+        });
+      } catch (e) {
+        console.warn('Audit logging error:', e);
       }
 
       return { success: true, message: 'Brouillon supprimé avec succès.' };
@@ -1156,6 +1179,114 @@ export const ApplicationService = {
       console.error('Error deleting draft:', err);
       return { success: false, message: 'Une erreur est survenue lors de la suppression du brouillon.' };
     }
+  },
+
+  /**
+   * Check whether a candidate is allowed to apply for a new topic
+   * Strict USMBA rule: strictly ONE application per candidate across the entire campaign
+   */
+  canCandidateApply(candidate: { id?: string; email?: string; cin?: string; cne?: string }): {
+    canApply: boolean;
+    reason?: string;
+    existingDraftId?: string;
+    existingApplication?: CandidateApplication;
+    hasSubmitted?: boolean;
+    hasDraft?: boolean;
+  } {
+    const email = (candidate.email || '').toLowerCase().trim();
+    const cin = (candidate.cin || '').toLowerCase().trim();
+    const cne = (candidate.cne || '').toLowerCase().trim();
+    const cid = (candidate.id || '').toLowerCase().trim();
+
+    if (!email && !cin && !cne && !cid) {
+      return { canApply: true };
+    }
+
+    const allApps = this.getApplications();
+    const myApps = allApps.filter((app) => {
+      const appEmail = (app.candidateEmail || '').toLowerCase().trim();
+      const appCin = (app.cin || '').toLowerCase().trim();
+      const appCne = (app.cne || '').toLowerCase().trim();
+      const appId = (app.candidateId || '').toLowerCase().trim();
+      return (
+        (email && appEmail === email) ||
+        (cin && appCin === cin) ||
+        (cne && appCne === cne) ||
+        (cid && appId === cid)
+      );
+    });
+
+    if (myApps.length === 0) {
+      return { canApply: true };
+    }
+
+    // Check if there is an official submission
+    const submitted = myApps.find((a) => !a.isDraft && a.status !== 'draft');
+    if (submitted) {
+      return {
+        canApply: false,
+        hasSubmitted: true,
+        existingApplication: submitted,
+        reason: `Vous avez déjà soumis une candidature officielle pour le sujet « ${submitted.topicTitle} » (${submitted.topicCode}). Conformément à la réglementation de l’USMBA, un candidat ne peut déposer qu'un seul dossier par session doctorale.`,
+      };
+    }
+
+    // Check if there is an active draft
+    const draft = myApps.find((a) => a.isDraft || a.status === 'draft');
+    if (draft) {
+      return {
+        canApply: false,
+        hasDraft: true,
+        existingDraftId: draft.id,
+        existingApplication: draft,
+        reason: `Vous possédez déjà un brouillon en cours pour le sujet « ${draft.topicTitle} » (${draft.topicCode}). La plateforme limite chaque candidat à un seul dossier. Vous pouvez reprendre la saisie de ce brouillon ou le supprimer pour postuler à un autre sujet.`,
+      };
+    }
+
+    return { canApply: true };
+  },
+
+  /**
+   * Supervisory tool for administrators to audit any duplicate applications
+   */
+  getDuplicateApplicationsForAudit(): {
+    candidateKey: string;
+    candidateName: string;
+    candidateEmail: string;
+    count: number;
+    applications: CandidateApplication[];
+  }[] {
+    const all = this.getApplications();
+    const map = new Map<string, CandidateApplication[]>();
+
+    for (const app of all) {
+      const key = (app.candidateEmail || app.cne || app.cin || app.candidateName || 'inconnu').toLowerCase().trim();
+      const list = map.get(key) || [];
+      list.push(app);
+      map.set(key, list);
+    }
+
+    const duplicates: {
+      candidateKey: string;
+      candidateName: string;
+      candidateEmail: string;
+      count: number;
+      applications: CandidateApplication[];
+    }[] = [];
+
+    map.forEach((list, key) => {
+      if (list.length > 1) {
+        duplicates.push({
+          candidateKey: key,
+          candidateName: list[0].candidateName || key,
+          candidateEmail: list[0].candidateEmail || key,
+          count: list.length,
+          applications: list,
+        });
+      }
+    });
+
+    return duplicates;
   },
 
   /**
@@ -1290,6 +1421,18 @@ export const ApplicationService = {
       apps.unshift(draft);
     }
     this.saveApplications(apps);
+
+    try {
+      AuditLogService.log({
+        action: 'ENREGISTREMENT_BROUILLON',
+        userEmail: draft.candidateEmail,
+        userRole: 'candidate',
+        details: `Brouillon sauvegardé pour le sujet ${draft.topicCode || draft.topicId}`,
+        targetId: draft.id,
+      });
+    } catch (e) {
+      console.warn('Audit log error', e);
+    }
   },
 
   /**
@@ -1305,6 +1448,18 @@ export const ApplicationService = {
       apps.unshift(finalApp);
     }
     this.saveApplications(apps);
+
+    try {
+      AuditLogService.log({
+        action: 'SOUMISSION_CANDIDATURE',
+        userEmail: app.candidateEmail,
+        userRole: 'candidate',
+        details: `Candidature officielle transmise pour le sujet ${app.topicCode} (${app.topicTitle})`,
+        targetId: app.id,
+      });
+    } catch (e) {
+      console.warn('Audit log error', e);
+    }
 
     try {
       // Find topic from active topics to identify professor
