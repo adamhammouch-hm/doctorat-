@@ -49,12 +49,11 @@ export const ProfileService = {
     try {
       const raw = localStorage.getItem(STORAGE_PROFILES_KEY);
       if (!raw) {
-        this.saveAllProfiles(SEEDED_PROFILES);
-        return SEEDED_PROFILES;
+        return {};
       }
       return JSON.parse(raw);
     } catch {
-      return SEEDED_PROFILES;
+      return {};
     }
   },
 
@@ -67,6 +66,7 @@ export const ProfileService = {
   },
 
   getProfile(userId: string): CandidateProfile | null {
+    if (!userId) return null;
     const profiles = this.getAllProfiles();
     return profiles[userId] || null;
   },

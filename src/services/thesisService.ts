@@ -826,33 +826,6 @@ const APPLICATIONS_STORAGE_KEY = V5_KEYS.APPLICATIONS;
 
 export const DEMO_APPLICATIONS: CandidateApplication[] = [
   {
-    id: 'app-2026-draft-01',
-    topicId: 'usmba-topic-2026-004',
-    topicCode: 'ENSA-LIMII-26-04',
-    topicTitle: 'Optimisation Énergétique des Réseaux Électriques Intelligents (Smart Grids) par IA Distribuée',
-    candidateName: 'Youssef El Amrani',
-    candidateEmail: 'candidat.test@usmba.ma',
-    candidatePhone: '+212 661 234 567',
-    cne: 'N138294012',
-    cin: 'CD718293',
-    masterDegree: 'Master Recherche en Informatique et Systèmes Intelligents',
-    masterUniversity: 'Faculté des Sciences et Techniques (FST) de Fès',
-    masterGrade: 16.20,
-    masterMention: 'Très Bien',
-    pfeTitle: 'Optimisation stochastique appliquée aux micro-réseaux intelligents',
-    submissionDate: '2026-11-02',
-    status: 'draft',
-    isDraft: true,
-    draftStep: 3,
-    documents: [
-      { id: 'doc-draft-1', name: 'Curriculum Vitae académique', category: 'cv', fileName: 'CV_ElAmrani_Brouillon.pdf', fileSize: '1.1 Mo', status: 'valid' },
-      { id: 'doc-draft-2', name: 'Diplôme de Master (ou Attestation)', category: 'master_diploma', fileName: 'Attestation_Master_Provisoire.pdf', fileSize: '1.9 Mo', status: 'valid' },
-    ],
-    history: [
-      { id: 'h-draft-1', date: '02/11/2026 11:15', action: 'Brouillon sauvegardé (Étape 3 : Pièces jointes)', author: 'Youssef El Amrani' },
-    ],
-  },
-  {
     id: 'app-2026-001',
     topicId: 'usmba-topic-2026-001',
     topicCode: 'FST-LISIA-26-01',
@@ -1083,14 +1056,15 @@ export const ApplicationService = {
       const deletedIds = this.getDeletedDraftIds();
       if (raw !== null) {
         const parsed: CandidateApplication[] = JSON.parse(raw);
-        return parsed.filter((app) => !deletedIds.has(app.id));
+        const filtered = parsed.filter((app) => !deletedIds.has(app.id) && app.id !== 'app-2026-draft-01');
+        if (filtered.length !== parsed.length) {
+          this.saveApplications(filtered);
+        }
+        return filtered;
       }
-      // Initialize with DEMO_APPLICATIONS filtered against deleted drafts
-      const initial = DEMO_APPLICATIONS.filter((app) => !deletedIds.has(app.id));
-      this.saveApplications(initial);
-      return initial;
+      return [];
     } catch {
-      return DEMO_APPLICATIONS;
+      return [];
     }
   },
 
@@ -1183,9 +1157,9 @@ export const ApplicationService = {
    * Submitted applications can never be deleted.
    * Cleans up localStorage and safely removes unreferenced IndexedDB files.
    */
-  deleteDraft(applicationId: string, candidateIdentifier: string): { success: boolean; message: string } {
+  deleteDraft(applicationId: string, candidateUserId: string): { success: boolean; message: string } {
     try {
-      const candNorm = (candidateIdentifier || '').toLowerCase().trim();
+      const candNorm = (candidateUserId || '').trim();
       if (!candNorm) {
         return { success: false, message: 'Action non autorisée : identifiant candidat manquant.' };
       }
@@ -1206,12 +1180,8 @@ export const ApplicationService = {
         };
       }
 
-      // Check ownership strictly against candidateIdentifier
-      const isOwner = 
-        (target.candidateEmail && target.candidateEmail.toLowerCase().trim() === candNorm) ||
-        (target.cne && target.cne.toLowerCase().trim() === candNorm) ||
-        (target.cin && target.cin.toLowerCase().trim() === candNorm) ||
-        (target.candidateId && target.candidateId.toLowerCase().trim() === candNorm);
+      // Check ownership strictly against candidateUserId (drafts without candidateId cannot be claimed)
+      const isOwner = Boolean(target.candidateId && target.candidateId.trim() === candNorm);
 
       if (!isOwner) {
         return { success: false, message: 'Action non autorisée : ce brouillon ne vous appartient pas.' };
@@ -1303,16 +1273,9 @@ export const ApplicationService = {
     const allApps = this.getApplications();
     const myApps = allApps.filter((app) => {
       if (currentAppId && app.id === currentAppId) return false;
-      const appEmail = (app.candidateEmail || '').toLowerCase().trim();
-      const appCin = (app.cin || '').toLowerCase().trim();
-      const appCne = (app.cne || '').toLowerCase().trim();
-      const appId = (app.candidateId || '').toLowerCase().trim();
-      return (
-        (email && appEmail === email) ||
-        (cin && appCin === cin) ||
-        (cne && appCne === cne) ||
-        (cid && appId === cid)
-      );
+      if (!app.candidateId) return false;
+      if (cid) return app.candidateId.trim().toLowerCase() === cid;
+      return false;
     });
 
     // Only count submitted applications for THIS academic session (previous sessions do NOT count towards quota)
@@ -1572,6 +1535,12 @@ export const ApplicationService = {
     const apps = this.getApplications();
     const index = apps.findIndex((a) => a.id === draft.id);
     if (index >= 0) {
+      const existing = apps[index];
+      // Guard: do not allow overwriting an application belonging to another candidate
+      if (existing.candidateId && draft.candidateId && existing.candidateId.trim() !== draft.candidateId.trim()) {
+        console.warn('Unauthorized attempt to overwrite draft belonging to another candidate');
+        return;
+      }
       apps[index] = draft;
     } else {
       apps.unshift(draft);
@@ -1596,7 +1565,7 @@ export const ApplicationService = {
    */
   submitApplication(app: CandidateApplication): { success: boolean; error?: string } {
     const allApps = this.getApplications();
-    const email = (app.candidateEmail || '').toLowerCase().trim();
+    const currentCandidateId = (app.candidateId || '').trim();
     
     // Resolve session for target application
     const targetTopic = ThesisTopicService.getTopics().find((t) => t.id === app.topicId);
@@ -1609,14 +1578,8 @@ export const ApplicationService = {
       const aSession = a.academicYear || ThesisTopicService.getTopics().find((t) => t.id === a.topicId)?.academicYear || getCurrentAcademicYear();
       if (aSession !== sessionYear) return false; // Prior sessions do NOT count towards current session limit
 
-      const appEmail = (a.candidateEmail || '').toLowerCase().trim();
-      const appCin = (a.cin || '').toLowerCase().trim();
-      const appCne = (a.cne || '').toLowerCase().trim();
-      return (
-        (email && appEmail === email) ||
-        (app.cin && appCin === (app.cin || '').toLowerCase().trim()) ||
-        (app.cne && appCne === (app.cne || '').toLowerCase().trim())
-      );
+      if (!a.candidateId) return false;
+      return Boolean(currentCandidateId && a.candidateId.trim() === currentCandidateId);
     });
 
     const MAX_APPLICATIONS = CartService.getMaxLimit();
@@ -1637,6 +1600,12 @@ export const ApplicationService = {
 
     const apps = this.getApplications();
     const index = apps.findIndex((a) => a.id === app.id);
+    if (index >= 0) {
+      const existing = apps[index];
+      if (existing.candidateId && app.candidateId && existing.candidateId.trim() !== app.candidateId.trim()) {
+        return { success: false, error: 'Action non autorisée : ce dossier ne vous appartient pas.' };
+      }
+    }
     const finalApp: CandidateApplication = { 
       ...app, 
       academicYear: sessionYear, 
@@ -1701,12 +1670,15 @@ export const ApplicationService = {
   /**
    * Replace a specific document (e.g. following a correction request)
    */
-  replaceDocument(appId: string, updatedDoc: ApplicationDocument): CandidateApplication | null {
+  replaceDocument(appId: string, updatedDoc: ApplicationDocument, candidateUserId?: string): CandidateApplication | null {
     const apps = this.getApplications();
     const index = apps.findIndex((a) => a.id === appId);
     if (index === -1) return null;
 
     const current = apps[index];
+    if (candidateUserId && current.candidateId && current.candidateId.trim() !== candidateUserId.trim()) {
+      return null;
+    }
     const updatedDocs = current.documents.map((d) => 
       d.category === updatedDoc.category ? { ...updatedDoc, status: 'valid' as const } : d
     );

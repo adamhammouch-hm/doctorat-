@@ -378,10 +378,12 @@ export const AdmissionWaitlistService = {
 
     applications.forEach((other) => {
       if (other.id === applicationId) return; // Skip the confirmed one
-      // Same candidate check (email or id)
-      const isSameCandidate =
-        other.candidateEmail.toLowerCase().trim() === app.candidateEmail.toLowerCase().trim() ||
-        (app.candidateId && other.candidateId === app.candidateId);
+      // Same candidate check (candidateId strict if present on both, fallback to email)
+      const isSameCandidate = Boolean(
+        app.candidateId && other.candidateId
+          ? app.candidateId.trim() === other.candidateId.trim()
+          : (app.candidateEmail && other.candidateEmail && other.candidateEmail.toLowerCase().trim() === app.candidateEmail.toLowerCase().trim())
+      );
       if (!isSameCandidate) return;
 
       // Don't touch already-terminal statuses or drafts

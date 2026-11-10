@@ -137,7 +137,9 @@ export const DataMigrationService = {
       const apps: any[] = JSON.parse(raw);
       if (!Array.isArray(apps)) return;
 
-      const updated = apps.map((app) => {
+      const updated = apps
+        .filter((app) => app && app.id !== 'app-2026-draft-01')
+        .map((app) => {
         // Strict USMBA rule: preserve original topicId, topicCode, and historical dates
         const submissionDate = app.submissionDate ? toISOStringSafe(app.submissionDate).slice(0, 10) : new Date().toISOString().slice(0, 10);
         const decisionDate = app.decisionDate ? toISOStringSafe(app.decisionDate).slice(0, 10) : undefined;

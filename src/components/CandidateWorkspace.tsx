@@ -68,10 +68,9 @@ export const CandidateWorkspace: React.FC<CandidateWorkspaceProps> = ({
   const isRtl = language === 'ar';
   const [activeTab, setActiveTab] = useState<'applications' | 'profile'>('applications');
 
-  // Candidate applications filtered strictly to this user
+  // Candidate applications filtered strictly to this user (strictly candidateId === user.id)
   const userApplications = applications.filter(
-    (app) => app.candidateId === user.id ||
-             app.candidateEmail.toLowerCase() === user.email.toLowerCase()
+    (app) => Boolean(app.candidateId && user?.id && app.candidateId.trim() === user.id.trim())
   );
 
   const [selectedAppId, setSelectedAppId] = useState<string>(
@@ -87,7 +86,7 @@ export const CandidateWorkspace: React.FC<CandidateWorkspaceProps> = ({
   const handleConfirmDeleteDraft = () => {
     if (!draftToDelete) return;
     const targetId = draftToDelete.id;
-    const res = ApplicationService.deleteDraft(targetId, user.email);
+    const res = ApplicationService.deleteDraft(targetId, user.id);
     if (res.success) {
       setDeleteDraftFeedback(isRtl ? 'تم حذف المسودة بنجاح' : 'Brouillon supprimé avec succès.');
       setTimeout(() => setDeleteDraftFeedback(null), 4000);
@@ -215,7 +214,7 @@ export const CandidateWorkspace: React.FC<CandidateWorkspaceProps> = ({
 
   const handleDocumentReplaced = (doc: ApplicationDocument) => {
     if (!correctionTargetDoc) return;
-    const res = ApplicationService.replaceDocument(correctionTargetDoc.appId, doc);
+    const res = ApplicationService.replaceDocument(correctionTargetDoc.appId, doc, user.id);
     if (res && onApplicationUpdated) {
       onApplicationUpdated(res);
     }

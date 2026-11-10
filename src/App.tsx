@@ -204,14 +204,12 @@ export default function App() {
     return filterAndSortTopics(topics, filters);
   }, [topics, filters]);
 
-  // Applications of current candidate (if role is candidate)
+  // Applications of current candidate (if role is candidate, strictly candidateId === currentUser.id)
   const candidateApplications = useMemo(() => {
-    if (!currentUser || currentUser.role !== 'candidate') return [];
-    const userEmail = currentUser.email.toLowerCase().trim();
+    if (!currentUser || currentUser.role !== 'candidate' || !currentUser.id) return [];
+    const currentUserId = currentUser.id.trim();
     return applications.filter(
-      (a) =>
-        a.candidateEmail.toLowerCase().trim() === userEmail ||
-        a.candidateId === currentUser.id
+      (a) => Boolean(a.candidateId && a.candidateId.trim() === currentUserId)
     );
   }, [applications, currentUser]);
 
@@ -270,6 +268,10 @@ export default function App() {
 
   // Resume existing draft
   const handleResumeDraft = (draftApp: CandidateApplication) => {
+    if (!currentUser || !draftApp.candidateId || draftApp.candidateId.trim() !== currentUser.id.trim()) {
+      showToast('Action non autorisée : ce brouillon ne vous appartient pas.', 'warning');
+      return;
+    }
     const topic = topics.find((t) => t.id === draftApp.topicId) || topics[0];
     setActiveApplicationModal({
       isOpen: true,

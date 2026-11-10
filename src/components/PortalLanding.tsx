@@ -15,20 +15,20 @@
 import React, { useState } from 'react';
 import { AppUser, Language } from '../types';
 import { AuthService } from '../services/authService';
-import { 
-  GraduationCap, 
-  Lock, 
-  Mail, 
-  LogIn, 
-  UserPlus, 
-  ArrowRight, 
-  KeyRound, 
-  AlertCircle, 
-  CheckCircle2, 
-  Layers, 
-  Building2, 
-  Calendar, 
-  BookOpen, 
+import {
+  GraduationCap,
+  Lock,
+  Mail,
+  LogIn,
+  UserPlus,
+  ArrowRight,
+  KeyRound,
+  AlertCircle,
+  CheckCircle2,
+  Layers,
+  Building2,
+  Calendar,
+  BookOpen,
   ShieldCheck,
   Search
 } from 'lucide-react';

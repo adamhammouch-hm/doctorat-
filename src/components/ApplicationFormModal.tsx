@@ -113,15 +113,17 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
 
   const isEditingCurrentApp = Boolean(
     existingApplication &&
+    (!existingApplication.candidateId || existingApplication.candidateId === user.id) &&
     (existingApplication.id === eligibility.existingDraftId ||
      existingApplication.topicId === topic.id)
   );
 
-  const isBlocked = !isEditingCurrentApp && !eligibility.canApply;
+  const isBlocked = (!isEditingCurrentApp && !eligibility.canApply) ||
+    Boolean(existingApplication && existingApplication.candidateId && existingApplication.candidateId !== user.id);
 
   const handleDeleteOldDraftAndContinue = () => {
     if (eligibility.existingDraftId) {
-      ApplicationService.deleteDraft(eligibility.existingDraftId, user.email);
+      ApplicationService.deleteDraft(eligibility.existingDraftId, user.id);
       setEligibility({ canApply: true });
     }
   };
@@ -200,6 +202,9 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
 
   const saveDraftSilently = () => {
     if (isBlocked) return;
+    if (existingApplication && existingApplication.candidateId && existingApplication.candidateId !== user.id) {
+      return;
+    }
     ProfileService.saveProfile(profile);
 
     const draftApp: CandidateApplication = {
@@ -342,6 +347,11 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
 
     if (!check.canApply) {
       setValidationError(check.reason || 'Dépôt impossible : quota atteint ou candidature en double.');
+      return;
+    }
+
+    if (existingApplication && existingApplication.candidateId && existingApplication.candidateId !== user.id) {
+      setValidationError('Action non autorisée : ce dossier ne vous appartient pas.');
       return;
     }
 
