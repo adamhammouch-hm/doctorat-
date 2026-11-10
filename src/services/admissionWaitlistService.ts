@@ -24,6 +24,20 @@ import { V5_KEYS } from './dataMigrationService';
 
 const STORAGE_PROPOSALS_KEY = V5_KEYS.PROPOSALS;
 
+function getStructureDirectorEmail(): string {
+  try {
+    const raw = localStorage.getItem(V5_KEYS.ACCOUNTS);
+    if (raw) {
+      const accounts = JSON.parse(raw);
+      const director = accounts.find((a: any) => a.role === 'structure_director');
+      if (director?.email) return director.email;
+    }
+  } catch {
+    // ignore
+  }
+  return 'directeur.structure@usmba.ma';
+}
+
 export const AdmissionWaitlistService = {
   /**
    * Retrieve all waitlist promotion proposals
@@ -115,7 +129,6 @@ export const AdmissionWaitlistService = {
         });
 
         // 3. Find next candidate on the waitlist for this specific topic
-        const topic = topics.find((t) => t.id === app.topicId);
         const waitlistCandidates = updatedApps
           .filter((other) => other.topicId === app.topicId && (other.status === 'waitlist' || other.status === 'waitlisted'))
           .sort((a, b) => {
@@ -163,9 +176,10 @@ export const AdmissionWaitlistService = {
             proposals.unshift(proposal);
             newProposalsCount++;
 
-            // Notify Structure Director
+            // Notify Structure Director dynamically
+            const directorEmail = getStructureDirectorEmail();
             NotificationService.send({
-              recipientEmail: 'directeur.structure.test@usmba.ma',
+              recipientEmail: directorEmail,
               recipientRole: 'structure_director',
               type: 'waitlist_proposal',
               title: `Proposition liste d'attente : ${nextInLine.candidateName} (Sujet ${app.topicCode})`,
@@ -176,8 +190,9 @@ export const AdmissionWaitlistService = {
           }
         } else {
           // No candidate left on waitlist for this topic
+          const directorEmail = getStructureDirectorEmail();
           NotificationService.send({
-            recipientEmail: 'directeur.structure.test@usmba.ma',
+            recipientEmail: directorEmail,
             recipientRole: 'structure_director',
             type: 'waitlist_proposal',
             title: `Place vacante sur le sujet ${app.topicCode}`,
@@ -338,9 +353,10 @@ export const AdmissionWaitlistService = {
 
     ApplicationService.saveApplications(applications);
 
-    // Notify Directors
+    // Notify Structure Director
+    const directorEmail = getStructureDirectorEmail();
     NotificationService.send({
-      recipientEmail: 'directeur.structure.test@usmba.ma',
+      recipientEmail: directorEmail,
       recipientRole: 'structure_director',
       type: 'submission',
       title: `Inscription confirmée : ${candidateName} (Sujet ${app.topicCode})`,

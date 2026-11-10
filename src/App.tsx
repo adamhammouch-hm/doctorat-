@@ -44,6 +44,7 @@ import { ThesisDirectorWorkspace } from './components/ThesisDirectorWorkspace';
 import { StructureDirectorWorkspace } from './components/StructureDirectorWorkspace';
 import { CandidateWorkspace } from './components/CandidateWorkspace';
 import { AdminWorkspace } from './components/AdminWorkspace';
+import { PortalLanding } from './components/PortalLanding';
 import { ApplicationFormModal } from './components/ApplicationFormModal';
 import { NotificationCenterModal } from './components/NotificationCenterModal';
 import { Footer } from './components/Footer';
@@ -53,7 +54,8 @@ import {
   Layers, 
   Info,
   LayoutDashboard,
-  ArrowRight
+  ArrowRight,
+  LogIn
 } from 'lucide-react';
 
 const INITIAL_FILTERS: TopicFilters = {
@@ -91,9 +93,16 @@ export default function App() {
 
   // 2. Authentication state (restores active session from AuthService)
   const [currentUser, setCurrentUser] = useState<AppUser | null>(() => AuthService.getCurrentUser());
-  const [activeView, setActiveView] = useState<'catalog' | 'workspace'>(() => 
-    AuthService.getCurrentUser() ? 'workspace' : 'catalog'
+  const [activeView, setActiveView] = useState<'login' | 'catalog' | 'workspace'>(() => 
+    AuthService.getCurrentUser() ? 'workspace' : 'login'
   );
+
+  // Strict route protection guard: unauthenticated users cannot access workspace
+  useEffect(() => {
+    if (!currentUser && activeView === 'workspace') {
+      setActiveView('login');
+    }
+  }, [currentUser, activeView]);
 
   // 3. Application Wizard and Target Topic state
   const [pendingApplicationTopic, setPendingApplicationTopic] = useState<ThesisTopic | null>(null);
@@ -452,8 +461,8 @@ export default function App() {
   const handleLogout = () => {
     AuthService.logout();
     setCurrentUser(null);
-    setActiveView('catalog');
-    showToast('Session fermée. Retour au catalogue public.', 'info');
+    setActiveView('login');
+    showToast('Session fermée avec succès. Retour à la page de connexion.', 'info');
   };
 
   const scrollToCatalog = () => {
@@ -495,7 +504,7 @@ export default function App() {
         onOpenAuth={() => setIsAuthOpen(true)}
         onOpenGuide={() => setIsGuideOpen(true)}
         onNavigateHome={() => {
-          setActiveView(currentUser ? 'workspace' : 'catalog');
+          setActiveView(currentUser ? 'workspace' : 'login');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         currentUser={currentUser}
@@ -508,8 +517,16 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 container-constrained py-6 sm:py-8 space-y-6" ref={catalogSectionRef}>
-        {/* If user is logged in and viewing their private workspace */}
-        {currentUser && activeView === 'workspace' ? (
+        {/* VIEW 1: Portal Landing & Authentication Gateway */}
+        {activeView === 'login' && !currentUser ? (
+          <PortalLanding
+            language={language}
+            onLoginSuccess={handleLoginSuccess}
+            onBrowseCatalog={() => setActiveView('catalog')}
+            totalTopicsCount={topics.length}
+          />
+        ) : currentUser && activeView === 'workspace' ? (
+          /* VIEW 2: Dedicated Role Workspaces */
           <div>
             {(currentUser.role === 'thesis_director' || (currentUser.role as any) === 'professor') && (
               <ThesisDirectorWorkspace
@@ -568,8 +585,30 @@ export default function App() {
             )}
           </div>
         ) : (
-          /* PUBLIC CATALOG VIEW (Accessible to all unauthenticated visitors and logged-in users) */
+          /* VIEW 3: Public Catalog View (Accessible to all unauthenticated visitors and logged-in users) */
           <div className="space-y-6">
+            {/* If visitor is browsing without account, show official visitor banner */}
+            {!currentUser && (
+              <div className="p-3.5 bg-gradient-to-r from-sky-50 via-slate-50 to-emerald-50 border border-sky-200/90 rounded-xl shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-sky-600 animate-pulse shrink-0" />
+                  <p className="text-slate-700 font-medium">
+                    {isRtl
+                      ? 'أنت تتصفح دليل مواضيع أطروحات الدكتوراه في وضع الزائر المفتوح. لتسجيل ترشيحك أو متابعة ملفك، يرجى تسجيل الدخول.'
+                      : 'Vous consultez le catalogue officiel des sujets de thèse en accès public libre. Pour postuler ou accéder à votre espace, veuillez vous connecter.'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveView('login')}
+                  className="px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-2xs"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>{isRtl ? 'بوابة الدخول' : 'Connexion / Portail'}</span>
+                </button>
+              </div>
+            )}
+
             {/* If logged in but browsing catalog, show clean return banner */}
             {currentUser && (
               <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3 text-xs shadow-2xs">

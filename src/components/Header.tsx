@@ -31,8 +31,8 @@ interface HeaderProps {
   onNavigateHome: () => void;
   currentUser: AppUser | null;
   onLogout: () => void;
-  activeView: 'catalog' | 'workspace';
-  onToggleView: (view: 'catalog' | 'workspace') => void;
+  activeView: 'login' | 'catalog' | 'workspace';
+  onToggleView: (view: 'login' | 'catalog' | 'workspace') => void;
   unreadNotificationsCount?: number;
   onOpenNotifications?: () => void;
 }
@@ -207,14 +207,27 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={onOpenAuth}
-                className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer shadow-2xs"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>{t('navLogin')}</span>
-              </button>
+              <div className="hidden sm:flex items-center gap-2">
+                {activeView === 'catalog' ? (
+                  <button
+                    type="button"
+                    onClick={() => onToggleView('login')}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer shadow-2xs"
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span>Se connecter</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onToggleView('catalog')}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-slate-800 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 border border-slate-200 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <Layers className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Catalogue des Sujets</span>
+                  </button>
+                )}
+              </div>
             )}
 
             {/* Mobile menu button */}
@@ -280,17 +293,30 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => {
-                onOpenAuth();
-                setMobileMenuOpen(false);
-              }}
-              className="w-full py-2 text-center text-xs font-bold text-white bg-slate-900 rounded-lg flex items-center justify-center gap-2"
-            >
-              <LogIn className="w-4 h-4" />
-              <span>{t('navLogin')}</span>
-            </button>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  onToggleView('login');
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full py-2 text-center text-xs font-bold text-white bg-slate-900 rounded-lg flex items-center justify-center gap-2"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Portail de Connexion</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onToggleView('catalog');
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full py-2 text-center text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg flex items-center justify-center gap-2"
+              >
+                <Layers className="w-4 h-4 text-emerald-700" />
+                <span>Catalogue des Sujets de Thèse</span>
+              </button>
+            </div>
           )}
         </div>
       )}

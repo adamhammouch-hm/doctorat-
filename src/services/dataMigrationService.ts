@@ -69,31 +69,30 @@ export const DataMigrationService = {
 
       const activeYear = getCurrentAcademicYear();
 
-      // 2. Migrate Topics
+      // 2. Migrate Topics (preserves original IDs and historical dates)
       this.migrateTopics(activeYear);
 
-      // 3. Migrate Applications
+      // 3. Migrate Applications (preserves original IDs and historical dates)
       this.migrateApplications(activeYear);
 
-      // 4. Migrate Accounts
+      // 4. Migrate Accounts (preserves original creation timestamps)
       this.migrateAccounts();
 
       // 5. Migrate Campaign
       this.migrateCampaign(activeYear);
 
-      // 6. Migrate Notifications
+      // 6. Migrate Notifications (preserves historical timestamps)
       this.migrateNotifications();
 
-      // Set current schema version
+      // Only mark migration as completed if all steps succeeded without error
       localStorage.setItem(V5_KEYS.SCHEMA_VERSION, String(CURRENT_SCHEMA_VERSION));
 
       console.info(`[USMBA Migration] Successfully migrated to v${CURRENT_SCHEMA_VERSION}`);
       return { migrated: true, previousVersion: currentVer, newVersion: CURRENT_SCHEMA_VERSION };
     } catch (err) {
-      console.error('[USMBA Migration] Error during migration:', err);
-      // Fallback: set version to avoid infinite loop
-      localStorage.setItem(V5_KEYS.SCHEMA_VERSION, String(CURRENT_SCHEMA_VERSION));
-      return { migrated: false, previousVersion: 0, newVersion: CURRENT_SCHEMA_VERSION };
+      console.error('[USMBA Migration] Migration aborted due to error:', err);
+      // Strict USMBA rule: NEVER mark migration as completed if it failed
+      return { migrated: false, previousVersion: 0, newVersion: 0 };
     }
   },
 
@@ -106,10 +105,7 @@ export const DataMigrationService = {
       if (!Array.isArray(topics)) return;
 
       const updated = topics.map((t) => {
-        const id = t.id ? t.id.replace('2024', '2026') : t.id;
-        const code = t.code ? t.code.replace('-24-', '-26-') : t.code;
-        const submissionDeadline = t.submissionDeadline ? t.submissionDeadline.replace('2024-', '2026-') : '2026-11-25';
-        
+        // Strict USMBA rule: preserve original IDs, codes, and historical dates
         let electronicSignature = t.electronicSignature;
         if (electronicSignature && electronicSignature.signedAt) {
           electronicSignature = {
@@ -120,10 +116,8 @@ export const DataMigrationService = {
 
         return {
           ...t,
-          id,
-          code,
-          academicYear: activeYear,
-          submissionDeadline,
+          academicYear: t.academicYear || activeYear,
+          submissionDeadline: t.submissionDeadline || '2026-11-25',
           electronicSignature,
         };
       });
@@ -131,10 +125,11 @@ export const DataMigrationService = {
       localStorage.setItem(V5_KEYS.TOPICS, JSON.stringify(updated));
     } catch (e) {
       console.warn('Failed to migrate topics', e);
+      throw e;
     }
   },
 
-  migrateApplications(activeYear: string): void {
+  migrateApplications(_activeYear: string): void {
     const raw = localStorage.getItem(V5_KEYS.APPLICATIONS) || localStorage.getItem(LEGACY_KEYS.APPLICATIONS_V1);
     if (!raw) return;
 
@@ -143,21 +138,13 @@ export const DataMigrationService = {
       if (!Array.isArray(apps)) return;
 
       const updated = apps.map((app) => {
-        const topicId = app.topicId ? app.topicId.replace('2024', '2026') : app.topicId;
-        const topicCode = app.topicCode ? app.topicCode.replace('-24-', '-26-') : app.topicCode;
+        // Strict USMBA rule: preserve original topicId, topicCode, and historical dates
         const submissionDate = app.submissionDate ? toISOStringSafe(app.submissionDate).slice(0, 10) : new Date().toISOString().slice(0, 10);
         const decisionDate = app.decisionDate ? toISOStringSafe(app.decisionDate).slice(0, 10) : undefined;
-        
-        // Convert registration deadline to 2026 ISO if exists
-        let registrationDeadline = app.registrationDeadline;
-        if (registrationDeadline && registrationDeadline.includes('2024')) {
-          registrationDeadline = registrationDeadline.replace('2024', '2026');
-        }
+        const registrationDeadline = app.registrationDeadline ? toISOStringSafe(app.registrationDeadline) : undefined;
 
         return {
           ...app,
-          topicId,
-          topicCode,
           submissionDate,
           decisionDate,
           registrationDeadline,
@@ -167,6 +154,7 @@ export const DataMigrationService = {
       localStorage.setItem(V5_KEYS.APPLICATIONS, JSON.stringify(updated));
     } catch (e) {
       console.warn('Failed to migrate applications', e);
+      throw e;
     }
   },
 
@@ -179,19 +167,17 @@ export const DataMigrationService = {
       if (!Array.isArray(accounts)) return;
 
       const updated = accounts.map((acc) => {
-        let createdAt = acc.createdAt;
-        if (createdAt && createdAt.includes('2024')) {
-          createdAt = createdAt.replace('2024', '2026');
-        }
+        // Preserve historical creation timestamps
         return {
           ...acc,
-          createdAt: createdAt || new Date().toISOString(),
+          createdAt: acc.createdAt ? toISOStringSafe(acc.createdAt) : new Date().toISOString(),
         };
       });
 
       localStorage.setItem(V5_KEYS.ACCOUNTS, JSON.stringify(updated));
     } catch (e) {
       console.warn('Failed to migrate accounts', e);
+      throw e;
     }
   },
 
@@ -206,18 +192,19 @@ export const DataMigrationService = {
       const updated = {
         ...campaign,
         academicYear: activeYear,
-        title: campaign.title ? campaign.title.replace('2024/2025', activeYear) : `Campagne Doctorale USMBA ${activeYear}`,
-        openingDate: campaign.openingDate ? campaign.openingDate.replace('2024', '2026') : '2026-10-01',
-        closingDate: campaign.closingDate ? campaign.closingDate.replace('2024', '2026') : '2026-11-25',
-        deliberationDate: campaign.deliberationDate ? campaign.deliberationDate.replace('2024', '2026') : '2026-12-05',
-        resultsDate: campaign.resultsDate ? campaign.resultsDate.replace('2024', '2026') : '2026-12-10',
-        registrationDeadline: campaign.registrationDeadline ? campaign.registrationDeadline.replace('2024', '2026') : '2026-12-20T23:59:59',
-        physicalDepositDeadline: campaign.physicalDepositDeadline ? campaign.physicalDepositDeadline.replace('2024', '2026') : '2026-12-25',
+        title: campaign.title || `Campagne Doctorale USMBA ${activeYear}`,
+        openingDate: campaign.openingDate ? toISOStringSafe(campaign.openingDate).slice(0, 10) : '2026-10-01',
+        closingDate: campaign.closingDate ? toISOStringSafe(campaign.closingDate).slice(0, 10) : '2026-11-25',
+        deliberationDate: campaign.deliberationDate ? toISOStringSafe(campaign.deliberationDate).slice(0, 10) : '2026-12-05',
+        resultsDate: campaign.resultsDate ? toISOStringSafe(campaign.resultsDate).slice(0, 10) : '2026-12-10',
+        registrationDeadline: campaign.registrationDeadline ? toISOStringSafe(campaign.registrationDeadline) : '2026-12-20T23:59:59',
+        physicalDepositDeadline: campaign.physicalDepositDeadline ? toISOStringSafe(campaign.physicalDepositDeadline).slice(0, 10) : '2026-12-25',
       };
 
       localStorage.setItem(V5_KEYS.CAMPAIGN, JSON.stringify(updated));
     } catch (e) {
       console.warn('Failed to migrate campaign', e);
+      throw e;
     }
   },
 
@@ -230,21 +217,17 @@ export const DataMigrationService = {
       if (!Array.isArray(notifs)) return;
 
       const updated = notifs.map((n) => {
-        let createdAt = n.createdAt;
-        if (createdAt && createdAt.includes('2024')) {
-          createdAt = toISOStringSafe(createdAt.replace('2024', '2026'));
-        }
+        // Preserve historical notification dates and IDs
         return {
           ...n,
-          createdAt: createdAt || new Date().toISOString(),
-          relatedTopicId: n.relatedTopicId ? n.relatedTopicId.replace('2024', '2026') : n.relatedTopicId,
-          relatedApplicationId: n.relatedApplicationId ? n.relatedApplicationId.replace('2024', '2026') : n.relatedApplicationId,
+          createdAt: n.createdAt ? toISOStringSafe(n.createdAt) : new Date().toISOString(),
         };
       });
 
       localStorage.setItem(V5_KEYS.NOTIFICATIONS, JSON.stringify(updated));
     } catch (e) {
       console.warn('Failed to migrate notifications', e);
+      throw e;
     }
   },
 };

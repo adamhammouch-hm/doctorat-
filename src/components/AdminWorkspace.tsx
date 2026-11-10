@@ -120,7 +120,7 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({
       showFeedback('Impossible de révoquer vos propres privilèges d’administrateur.');
       return;
     }
-    const res = AuthService.updateAccountRole(account.id, newRole, currentUser);
+    const res = AuthService.updateAccountRole(currentUser, account.id, newRole);
     if (res.success) {
       refreshAccounts();
       refreshLogs();

@@ -420,6 +420,20 @@ export const DEMO_TOPICS: ThesisTopic[] = [
 
 const TOPICS_STORAGE_KEY = V5_KEYS.TOPICS;
 
+function getStructureDirectorEmail(): string {
+  try {
+    const raw = localStorage.getItem(V5_KEYS.ACCOUNTS);
+    if (raw) {
+      const accounts = JSON.parse(raw);
+      const director = accounts.find((a: any) => a.role === 'structure_director');
+      if (director?.email) return director.email;
+    }
+  } catch {
+    // ignore
+  }
+  return 'directeur.structure@usmba.ma';
+}
+
 /**
  * Service de gestion du cycle de vie des sujets de thèse :
  * Création, modification, soumission, révision et signature électronique
@@ -493,8 +507,9 @@ export const ThesisTopicService = {
     topics.unshift(newTopic);
     this.saveTopics(topics);
 
+    const directorEmail = getStructureDirectorEmail();
     NotificationService.send({
-      recipientEmail: 'directeur.structure.test@usmba.ma',
+      recipientEmail: directorEmail,
       recipientRole: 'structure_director',
       type: 'validation',
       title: `Nouveau sujet soumis pour signature (${newTopic.code})`,
@@ -528,8 +543,9 @@ export const ThesisTopicService = {
     this.saveTopics(topics);
 
     if (isRevision) {
+      const directorEmail = getStructureDirectorEmail();
       NotificationService.send({
-        recipientEmail: 'directeur.structure.test@usmba.ma',
+        recipientEmail: directorEmail,
         recipientRole: 'structure_director',
         type: 'validation',
         title: `Sujet révisé et re-soumis (${updated.code})`,
@@ -659,7 +675,18 @@ export const CartService = {
   getCartTopics(): string[] {
     try {
       const data = localStorage.getItem(CART_STORAGE_KEY);
-      return data ? JSON.parse(data) : [];
+      if (!data) return [];
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed)) {
+        // Enforce strictly 1 topic max
+        if (parsed.length > 1) {
+          const trimmed = parsed.slice(0, 1);
+          this.saveCartTopics(trimmed);
+          return trimmed;
+        }
+        return parsed;
+      }
+      return [];
     } catch {
       return [];
     }
@@ -667,21 +694,24 @@ export const CartService = {
 
   saveCartTopics(topicIds: string[]): void {
     try {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(topicIds));
+      // Enforce strictly 1 topic max
+      const sanitized = Array.isArray(topicIds) ? topicIds.slice(0, 1) : [];
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(sanitized));
     } catch (e) {
       console.warn('Unable to persist cart to localStorage', e);
     }
   },
 
-  addTopic(topicId: string, maxLimit = DEFAULT_CART_CONFIG.maxSelectableTopics): { success: boolean; reason?: 'max_reached' | 'already_in_cart' } {
+  addTopic(topicId: string, maxLimit = 1): { success: boolean; reason?: 'max_reached' | 'already_in_cart' } {
     const current = this.getCartTopics();
     if (current.includes(topicId)) {
       return { success: false, reason: 'already_in_cart' };
     }
-    if (current.length >= maxLimit) {
+    // Strict USMBA rule: exactly 1 topic per candidate
+    if (current.length >= 1 || current.length >= maxLimit) {
       return { success: false, reason: 'max_reached' };
     }
-    const updated = [...current, topicId];
+    const updated = [topicId];
     this.saveCartTopics(updated);
     return { success: true };
   },
@@ -699,19 +729,20 @@ export const CartService = {
   getMaxLimit(): number {
     try {
       const stored = localStorage.getItem(CART_LIMIT_STORAGE_KEY);
-      if (stored) {
-        const val = parseInt(stored, 10);
-        if (!isNaN(val) && val >= 1 && val <= 10) return val;
+      // Clean up legacy limits that allowed > 1
+      if (stored && stored !== '1') {
+        localStorage.setItem(CART_LIMIT_STORAGE_KEY, '1');
       }
     } catch {
       // fallback
     }
-    return DEFAULT_CART_CONFIG.maxSelectableTopics;
+    return 1;
   },
 
-  setMaxLimit(newLimit: number): void {
+  setMaxLimit(_newLimit: number): void {
     try {
-      localStorage.setItem(CART_LIMIT_STORAGE_KEY, String(newLimit));
+      // Strict USMBA rule: permanently locked to 1
+      localStorage.setItem(CART_LIMIT_STORAGE_KEY, '1');
     } catch (e) {
       console.warn('Failed to set cart limit', e);
     }
