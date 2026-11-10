@@ -1,0 +1,928 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ * AdminWorkspace Component — Espace d'administration et gouvernance pour la Plateforme Doctorale USMBA
+ * - Gestion des comptes & habilitations RBAC
+ * - Registre général des candidatures & consultation des pièces justificatives
+ * - Audit de conformité de la règle des 3 candidatures maximum par session
+ * - Détection des réels doublons (même sujet ou dépassement de quota)
+ * - Journal d'audit immuable & traçabilité
+ * - Paramètres de conformité & architecture 100% locale
+ */
+
+import React, { useState } from 'react';
+import { 
+  AppUser, 
+  AuthAccount,
+  AppRole, 
+  Language, 
+  ThesisTopic, 
+  CandidateApplication,
+  AuditLogEntry 
+} from '../types';
+import { AuthService } from '../services/authService';
+import { AuditLogService } from '../services/auditLogService';
+import { ApplicationService } from '../services/thesisService';
+import { ApplicationReviewModal } from './ApplicationReviewModal';
+import { formatDateTime } from '../services/dateUtils';
+import { 
+  Users, 
+  Shield, 
+  Activity, 
+  Settings, 
+  Search, 
+  UserPlus, 
+  CheckCircle2, 
+  XCircle, 
+  AlertTriangle, 
+  Layers, 
+  FileText, 
+  Filter, 
+  Trash2,
+  Clock,
+  Database,
+  Info,
+  Check,
+  X,
+  Eye,
+  Sparkles
+} from 'lucide-react';
+
+interface AdminWorkspaceProps {
+  currentUser: AppUser;
+  topics: ThesisTopic[];
+  applications: CandidateApplication[];
+  language: Language;
+  onRefreshData?: () => void;
+}
+
+export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({
+  currentUser,
+  topics,
+  applications,
+  language,
+  onRefreshData,
+}) => {
+  const [activeTab, setActiveTab] = useState<'users' | 'supervision' | 'audit' | 'settings'>('users');
+
+  // Accounts state
+  const [accounts, setAccounts] = useState<AuthAccount[]>(() => AuthService.getAccounts());
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState<string>('all');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Modal create user
+  const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
+  const [newUserData, setNewUserData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'candidate' as AppRole,
+    institution: '',
+    laboratory: '',
+    title: '',
+  });
+
+  // Audit logs state
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(() => AuditLogService.getLogs());
+  const [auditSearchQuery, setAuditSearchQuery] = useState('');
+  const [auditActionFilter, setAuditActionFilter] = useState('all');
+
+  // Applications supervision state
+  const [selectedAppForReview, setSelectedAppForReview] = useState<CandidateApplication | null>(null);
+  const [appSearchQuery, setAppSearchQuery] = useState('');
+  const [appStatusFilter, setAppStatusFilter] = useState('all');
+
+  const showFeedback = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const refreshAccounts = () => {
+    setAccounts(AuthService.getAccounts());
+  };
+
+  const refreshLogs = () => {
+    setAuditLogs(AuditLogService.getLogs());
+  };
+
+  // Toggle user active status
+  const handleToggleActive = (account: AuthAccount) => {
+    if (account.id === currentUser.id) {
+      showFeedback('Impossible de désactiver votre propre compte administrateur.');
+      return;
+    }
+    const res = AuthService.toggleAccountActive(account.id, currentUser);
+    if (res.success) {
+      refreshAccounts();
+      refreshLogs();
+      showFeedback(`Compte de ${account.name} ${res.newStatus ? 'activé' : 'désactivé'}.`);
+    } else {
+      showFeedback(res.error || 'Erreur lors de la modification du statut.');
+    }
+  };
+
+  // Change user role
+  const handleChangeRole = (account: AuthAccount, newRole: AppRole) => {
+    if (account.id === currentUser.id && newRole !== 'admin') {
+      showFeedback('Impossible de révoquer vos propres privilèges d’administrateur.');
+      return;
+    }
+    const res = AuthService.updateAccountRole(currentUser, account.id, newRole);
+    if (res.success) {
+      refreshAccounts();
+      refreshLogs();
+      showFeedback(`Rôle de ${account.name} mis à jour : ${newRole}.`);
+    } else {
+      showFeedback(res.error || 'Erreur lors de la mise à jour du rôle.');
+    }
+  };
+
+  // Create new account
+  const handleCreateUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUserData.name.trim() || !newUserData.email.trim() || !newUserData.password.trim()) {
+      showFeedback('Veuillez remplir tous les champs obligatoires.');
+      return;
+    }
+
+    const res = AuthService.createAccountByAdmin(
+      {
+        name: newUserData.name.trim(),
+        email: newUserData.email.trim(),
+        role: newUserData.role,
+        password: newUserData.password.trim(),
+        institution: newUserData.institution.trim() || undefined,
+        laboratory: newUserData.laboratory.trim() || undefined,
+        title: newUserData.title.trim() || undefined,
+      },
+      currentUser
+    );
+
+    if (res.success) {
+      refreshAccounts();
+      refreshLogs();
+      setIsCreateUserOpen(false);
+      setNewUserData({
+        name: '',
+        email: '',
+        password: '',
+        role: 'candidate',
+        institution: '',
+        laboratory: '',
+        title: '',
+      });
+      showFeedback(`Compte créé avec succès pour ${res.account?.name}.`);
+    } else {
+      showFeedback(res.error || 'Erreur lors de la création du compte.');
+    }
+  };
+
+  // Delete account
+  const handleDeleteAccount = (account: AuthAccount) => {
+    if (account.id === currentUser.id) {
+      showFeedback('Impossible de supprimer votre propre compte administrateur.');
+      return;
+    }
+    if (window.confirm(`Confirmez-vous la suppression définitive du compte de ${account.name} (${account.email}) ?`)) {
+      const res = AuthService.deleteAccountByAdmin(account.id, currentUser);
+      if (res.success) {
+        refreshAccounts();
+        refreshLogs();
+        showFeedback(`Compte de ${account.name} supprimé avec succès.`);
+      } else {
+        showFeedback(res.error || 'Erreur lors de la suppression du compte.');
+      }
+    }
+  };
+
+  // Filter accounts
+  const filteredAccounts = accounts.filter((acc) => {
+    if (userRoleFilter !== 'all' && acc.role !== userRoleFilter) return false;
+    if (userSearchQuery.trim()) {
+      const q = userSearchQuery.toLowerCase().trim();
+      return (
+        acc.name.toLowerCase().includes(q) ||
+        acc.email.toLowerCase().includes(q) ||
+        (acc.institution && acc.institution.toLowerCase().includes(q)) ||
+        (acc.laboratory && acc.laboratory.toLowerCase().includes(q))
+      );
+    }
+    return true;
+  });
+
+  // Filter audit logs
+  const filteredLogs = auditLogs.filter((log) => {
+    if (auditActionFilter !== 'all' && log.action !== auditActionFilter) return false;
+    if (auditSearchQuery.trim()) {
+      const q = auditSearchQuery.toLowerCase().trim();
+      const email = (log.authorEmail || log.userEmail || '').toLowerCase();
+      const text = (log.comment || log.details || '').toLowerCase();
+      const act = (log.action || '').toLowerCase();
+      return email.includes(q) || text.includes(q) || act.includes(q);
+    }
+    return true;
+  });
+
+  // Duplicate applications check strictly based on USMBA rules (real duplicate = same topic or > 3 submitted)
+  const duplicateCandidates = ApplicationService.getDuplicateApplicationsForAudit();
+
+  const getRoleLabel = (role: AppRole) => {
+    switch (role) {
+      case 'candidate':
+        return 'Candidat';
+      case 'thesis_director':
+        return 'Directeur de thèse';
+      case 'structure_director':
+        return 'Directeur de structure';
+      case 'admin':
+        return 'Administrateur';
+      default:
+        return role;
+    }
+  };
+
+  const getRoleBadge = (role: AppRole) => {
+    switch (role) {
+      case 'admin':
+        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-200">Administrateur</span>;
+      case 'structure_director':
+        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200">Directeur de structure</span>;
+      case 'thesis_director':
+        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">Directeur de thèse</span>;
+      case 'candidate':
+      default:
+        return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">Candidat</span>;
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Toast Feedback */}
+      {toastMessage && (
+        <div className="fixed bottom-4 right-4 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg border border-slate-700 text-xs flex items-center gap-2">
+          <Info className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Top Banner */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-purple-100 text-purple-900">
+              Espace Administration USMBA
+            </span>
+            <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded font-mono">
+              Campagne 2026/2027
+            </span>
+          </div>
+          <h1 className="text-lg sm:text-xl font-bold text-slate-900 mt-1">
+            Gouvernance, habilitations et supervision globale
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Gestion des comptes, contrôle des candidatures, examen des pièces et audit d'intégrité
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsCreateUserOpen(true)}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-purple-800 hover:bg-purple-900 flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Créer un compte</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="flex border-b border-slate-200 gap-2 text-xs font-semibold overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => setActiveTab('users')}
+          className={`pb-3 px-3 border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'users'
+              ? 'border-purple-700 text-purple-900 font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span>Utilisateurs & Rôles ({accounts.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('supervision')}
+          className={`pb-3 px-3 border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'supervision'
+              ? 'border-purple-700 text-purple-900 font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Activity className="w-4 h-4" />
+          <span>Supervision & Pièces ({applications.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('audit')}
+          className={`pb-3 px-3 border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'audit'
+              ? 'border-purple-700 text-purple-900 font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Shield className="w-4 h-4" />
+          <span>Journal d'Audit ({auditLogs.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('settings')}
+          className={`pb-3 px-3 border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'settings'
+              ? 'border-purple-700 text-purple-900 font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Settings className="w-4 h-4" />
+          <span>Paramètres & Conformité</span>
+        </button>
+      </div>
+
+      {/* TAB 1: USERS */}
+      {activeTab === 'users' && (
+        <div className="space-y-4">
+          <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+              <input
+                type="text"
+                value={userSearchQuery}
+                onChange={(e) => setUserSearchQuery(e.target.value)}
+                placeholder="Rechercher par nom, email, établissement..."
+                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-purple-600 bg-slate-50/50"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter className="w-3.5 h-3.5 text-slate-400" />
+              <select
+                value={userRoleFilter}
+                onChange={(e) => setUserRoleFilter(e.target.value)}
+                className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-purple-600 cursor-pointer"
+              >
+                <option value="all">Tous les rôles ({accounts.length})</option>
+                <option value="candidate">Candidats</option>
+                <option value="thesis_director">Directeurs de thèse</option>
+                <option value="structure_director">Directeurs de structure</option>
+                <option value="admin">Administrateurs</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-bold text-[10px] tracking-wider">
+                  <tr>
+                    <th className="py-3 px-4">Utilisateur</th>
+                    <th className="py-3 px-4">Rôle</th>
+                    <th className="py-3 px-4">Établissement / Labo</th>
+                    <th className="py-3 px-4">Statut</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredAccounts.map((acc) => (
+                    <tr key={acc.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="font-bold text-slate-900">{acc.name}</div>
+                        <div className="text-slate-500 font-mono text-[11px]">{acc.email}</div>
+                      </td>
+                      <td className="py-3 px-4">
+                        {getRoleBadge(acc.role)}
+                      </td>
+                      <td className="py-3 px-4 text-slate-600">
+                        {acc.institution || acc.department || '—'}
+                        {acc.laboratory && <span className="block text-[11px] text-slate-400">{acc.laboratory}</span>}
+                      </td>
+                      <td className="py-3 px-4">
+                        {acc.isActive !== false ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Actif
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-rose-700 font-semibold bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                            <XCircle className="w-3 h-3" />
+                            Suspendu
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <select
+                            value={acc.role}
+                            onChange={(e) => handleChangeRole(acc, e.target.value as AppRole)}
+                            className="text-[11px] px-2 py-1 border border-slate-200 rounded bg-white font-medium cursor-pointer"
+                          >
+                            <option value="candidate">Candidat</option>
+                            <option value="thesis_director">Directeur thèse</option>
+                            <option value="structure_director">Dir. structure</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleActive(acc)}
+                            className={`p-1.5 rounded border transition-colors cursor-pointer ${
+                              acc.isActive !== false
+                                ? 'text-amber-700 hover:bg-amber-50 border-amber-200'
+                                : 'text-emerald-700 hover:bg-emerald-50 border-emerald-200'
+                            }`}
+                            title={acc.isActive !== false ? 'Suspendre le compte' : 'Activer le compte'}
+                          >
+                            {acc.isActive !== false ? <X className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAccount(acc)}
+                            className="p-1.5 rounded text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer"
+                            title="Supprimer définitivement"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: SUPERVISION */}
+      {activeTab === 'supervision' && (
+        <div className="space-y-6">
+          {/* Key Indicators */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+              <div className="text-[11px] font-bold text-slate-500 uppercase">Sujets au Catalogue</div>
+              <div className="text-2xl font-bold text-slate-900 mt-1">{topics.length}</div>
+              <div className="text-[10px] text-emerald-700 font-semibold mt-0.5">
+                {topics.filter((t) => t.workflowStatus === 'approved_signed').length} signés & validés
+              </div>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+              <div className="text-[11px] font-bold text-slate-500 uppercase">Total Candidatures</div>
+              <div className="text-2xl font-bold text-slate-900 mt-1">{applications.length}</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">
+                {applications.filter((a) => !a.isDraft && a.status !== 'draft').length} dossiers soumis
+              </div>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+              <div className="text-[11px] font-bold text-slate-500 uppercase">Brouillons Actifs</div>
+              <div className="text-2xl font-bold text-amber-600 mt-1">
+                {applications.filter((a) => a.isDraft || a.status === 'draft').length}
+              </div>
+              <div className="text-[10px] text-slate-500 mt-0.5">En cours de constitution</div>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+              <div className="text-[11px] font-bold text-slate-500 uppercase">Audit Doublons</div>
+              <div className={`text-2xl font-bold mt-1 ${duplicateCandidates.length > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                {duplicateCandidates.length}
+              </div>
+              <div className="text-[10px] text-slate-500 mt-0.5">
+                {duplicateCandidates.length === 0 ? 'Conformité 100%' : 'Anomalies détectées'}
+              </div>
+            </div>
+          </div>
+
+          {/* Rule Compliance Card */}
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <span>Supervision de la Règle « 3 Candidatures Max par Session & Pas de Doublon sur le Même Sujet »</span>
+                  {duplicateCandidates.length === 0 ? (
+                    <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Règle respectée
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-800 flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      {duplicateCandidates.length} anomalie(s) identifiée(s)
+                    </span>
+                  )}
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Détection des candidatures multiples non autorisées (plus de 3 candidatures officielles ou candidatures multiples sur le même sujet)
+                </p>
+              </div>
+            </div>
+
+            {duplicateCandidates.length === 0 ? (
+              <div className="p-4 bg-emerald-50/50 border border-emerald-200 rounded-lg flex items-center gap-3">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                <div className="text-xs text-emerald-900">
+                  <strong>Aucune anomalie détectée.</strong> Tous les candidats respectent la limite de 3 candidatures sans doublon sur un même sujet.
+                </div>
+              </div>
+            ) : (
+              <div className="border border-rose-200 rounded-lg overflow-hidden">
+                <div className="bg-rose-50 px-4 py-2 border-b border-rose-200 text-xs font-bold text-rose-900">
+                  Anomalies de candidature nécessitant un arbitrage :
+                </div>
+                <div className="divide-y divide-rose-100">
+                  {duplicateCandidates.map((dup) => (
+                    <div key={dup.candidateKey} className="p-4 bg-white flex flex-col md:flex-row md:items-center justify-between gap-3">
+                      <div>
+                        <div className="font-bold text-slate-900">{dup.candidateName}</div>
+                        <div className="text-xs text-slate-500 font-mono">{dup.candidateEmail}</div>
+                        <div className="text-xs text-rose-700 font-semibold mt-1">
+                          {dup.anomalyType === 'same_topic_duplicate' 
+                            ? 'Doublon : candidatures multiples sur le même sujet' 
+                            : 'Dépassement du plafond de 3 candidatures officielles'} 
+                          ({dup.count} dossiers : {dup.applications.map((a) => a.topicCode).join(', ')})
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] bg-rose-100 text-rose-800 px-2 py-1 rounded font-semibold">
+                          Arbitrage requis
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* All Applications Supervision Table */}
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Registre Général des Candidatures & Examen des Pièces
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Visualisez et examinez les dossiers et pièces justificatives de tous les candidats au doctorat
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={appSearchQuery}
+                    onChange={(e) => setAppSearchQuery(e.target.value)}
+                    placeholder="Chercher candidat, CNE, sujet..."
+                    className="pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:outline-none focus:ring-1 focus:ring-purple-600"
+                  />
+                </div>
+
+                <select
+                  value={appStatusFilter}
+                  onChange={(e) => setAppStatusFilter(e.target.value)}
+                  className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-purple-600 cursor-pointer"
+                >
+                  <option value="all">Tous les statuts ({applications.length})</option>
+                  <option value="pending_review">En attente d’examen</option>
+                  <option value="under_review">En cours d'examen</option>
+                  <option value="admitted">Admis (Liste Principale)</option>
+                  <option value="accepted">Accepté</option>
+                  <option value="waitlist">Liste d'attente</option>
+                  <option value="correction_requested">Correction demandée</option>
+                  <option value="incomplete">Incomplet</option>
+                  <option value="rejected">Rejeté</option>
+                  <option value="registration_confirmed">Inscription confirmée</option>
+                  <option value="draft">Brouillon</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto border border-slate-200 rounded-lg">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-bold text-[10px] tracking-wider">
+                  <tr>
+                    <th className="py-3 px-3.5">Candidat</th>
+                    <th className="py-3 px-3.5">Sujet de thèse</th>
+                    <th className="py-3 px-3.5">Master & Moyenne</th>
+                    <th className="py-3 px-3.5">Statut</th>
+                    <th className="py-3 px-3.5">Pièces</th>
+                    <th className="py-3 px-3.5 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {applications
+                    .filter((app) => {
+                      if (appStatusFilter !== 'all' && app.status !== appStatusFilter) return false;
+                      if (appSearchQuery.trim()) {
+                        const q = appSearchQuery.toLowerCase().trim();
+                        return (
+                          app.candidateName.toLowerCase().includes(q) ||
+                          app.candidateEmail.toLowerCase().includes(q) ||
+                          app.topicCode.toLowerCase().includes(q) ||
+                          app.topicTitle.toLowerCase().includes(q) ||
+                          app.cne.toLowerCase().includes(q)
+                        );
+                      }
+                      return true;
+                    })
+                    .map((app) => (
+                      <tr key={app.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-3 px-3.5">
+                          <div className="font-bold text-slate-900">{app.candidateName}</div>
+                          <div className="text-[11px] text-slate-500 font-mono">{app.cne} · {app.candidateEmail}</div>
+                        </td>
+                        <td className="py-3 px-3.5">
+                          <span className="font-mono font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded text-[10px]">
+                            {app.topicCode}
+                          </span>
+                          <div className="text-slate-800 font-medium line-clamp-1 mt-0.5 max-w-xs">{app.topicTitle}</div>
+                        </td>
+                        <td className="py-3 px-3.5">
+                          <div className="font-medium text-slate-800">{app.masterDegree}</div>
+                          <div className="text-[11px] text-slate-500">{app.masterGrade} / 20 ({app.masterMention})</div>
+                        </td>
+                        <td className="py-3 px-3.5">
+                          <span className="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-800 border border-slate-200">
+                            {app.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3.5">
+                          <span className="text-[11px] text-slate-600 font-semibold">
+                            {app.documents?.length || 0} pièce(s)
+                          </span>
+                        </td>
+                        <td className="py-3 px-3.5 text-right">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedAppForReview(app)}
+                            className="px-2.5 py-1 text-[11px] font-bold text-purple-800 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded flex items-center gap-1 ml-auto cursor-pointer transition-colors"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Examiner & Pièces</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: AUDIT TRAIL */}
+      {activeTab === 'audit' && (
+        <div className="space-y-4">
+          <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+              <input
+                type="text"
+                value={auditSearchQuery}
+                onChange={(e) => setAuditSearchQuery(e.target.value)}
+                placeholder="Filtrer l'audit par email, action, dossier..."
+                className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-purple-600 bg-slate-50/50"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={auditActionFilter}
+                onChange={(e) => setAuditActionFilter(e.target.value)}
+                className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-purple-600 cursor-pointer"
+              >
+                <option value="all">Toutes les actions ({auditLogs.length})</option>
+                <option value="CONNEXION">Connexion</option>
+                <option value="SOUMISSION_CANDIDATURE">Soumission candidature</option>
+                <option value="SUPPRESSION_BROUILLON">Suppression brouillon</option>
+                <option value="ENREGISTREMENT_BROUILLON">Sauvegarde brouillon</option>
+                <option value="SIGNATURE_ELECTRONIQUE">Signature électronique</option>
+                <option value="CREATION_COMPTE">Création compte</option>
+                <option value="MODIFICATION_ROLE">Modification rôle</option>
+                <option value="DESACTIVATION_COMPTE">Désactivation compte</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-bold text-[10px] tracking-wider">
+                  <tr>
+                    <th className="py-3 px-4">Horodatage (Casablanca)</th>
+                    <th className="py-3 px-4">Action</th>
+                    <th className="py-3 px-4">Auteur & Rôle</th>
+                    <th className="py-3 px-4">Détails de l'événement</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredLogs.map((log) => (
+                    <tr key={log.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="py-3 px-4 text-slate-500 font-mono text-[11px] whitespace-nowrap">
+                        {formatDateTime(log.timestamp, language)}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200">
+                          {log.action}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="font-semibold text-slate-900">{log.authorEmail || log.userEmail}</div>
+                        <div className="text-[10px] text-slate-500 capitalize">{getRoleLabel(log.authorRole || log.userRole || 'admin')}</div>
+                      </td>
+                      <td className="py-3 px-4 text-slate-700">
+                        {log.details || log.comment || log.newValue || '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: SETTINGS & COMPLIANCE */}
+      {activeTab === 'settings' && (
+        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-6">
+          <div>
+            <h3 className="text-base font-bold text-slate-900">
+              Paramètres Institutionnels & Architecture Locale
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Configuration de la campagne doctorale USMBA et règles techniques en vigueur
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 border border-slate-200 rounded-lg space-y-2">
+              <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <Database className="w-4 h-4 text-purple-700" />
+                <span>Architecture 100% Locale & Hors-Ligne</span>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Toutes les données de l’application (comptes, profils, sujets, candidatures, pièces justificatives et logs) sont stockées dans le navigateur via <strong>localStorage</strong> et <strong>IndexedDB</strong>. Aucun service tiers payant ni Firebase n'est requis.
+              </p>
+            </div>
+
+            <div className="p-4 border border-slate-200 rounded-lg space-y-2">
+              <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <Shield className="w-4 h-4 text-purple-700" />
+                <span>Règle des 3 Candidatures Max par Session</span>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Le plafond de candidatures officielles est fixé à <strong>3 sujets distincts par candidat et par session doctorale</strong>. Les brouillons ne sont pas décomptés de cette limite.
+              </p>
+            </div>
+          </div>
+
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 space-y-1">
+            <div className="font-bold text-slate-800">Transparence Technique & Démonstration :</div>
+            <p>
+              Ce prototype fonctionnel applique les règles de gestion du guide GCD de l’USMBA. Les 4 comptes de démonstration officiels permettent d'éprouver l'intégralité du cycle doctoral en conditions réelles sans risque de fuite de données.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE USER MODAL */}
+      {isCreateUserOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-md w-full p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <UserPlus className="w-4 h-4 text-purple-700" />
+                <span>Créer un Nouveau Compte</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsCreateUserOpen(false)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateUser} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Nom complet *</label>
+                <input
+                  type="text"
+                  required
+                  value={newUserData.name}
+                  onChange={(e) => setNewUserData({ ...newUserData, name: e.target.value })}
+                  placeholder="Ex: Dr. Ahmed Alaoui"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-1 focus:ring-purple-600"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Adresse e-mail institutionnelle *</label>
+                <input
+                  type="email"
+                  required
+                  value={newUserData.email}
+                  onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })}
+                  placeholder="nom.prenom@usmba.ac.ma"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-1 focus:ring-purple-600"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Mot de passe temporaire *</label>
+                <input
+                  type="password"
+                  required
+                  value={newUserData.password}
+                  onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
+                  placeholder="Minimum 8 caractères dont 1 chiffre"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-1 focus:ring-purple-600"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Rôle dans la plateforme *</label>
+                <select
+                  value={newUserData.role}
+                  onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value as AppRole })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-1 focus:ring-purple-600 cursor-pointer"
+                >
+                  <option value="candidate">Candidat au Doctorat</option>
+                  <option value="thesis_director">Directeur de Thèse & Encadrant</option>
+                  <option value="structure_director">Directeur de Structure (CEDoc / Pôle)</option>
+                  <option value="admin">Administrateur Système GCD</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Titre / Grade académique</label>
+                <input
+                  type="text"
+                  value={newUserData.title}
+                  onChange={(e) => setNewUserData({ ...newUserData, title: e.target.value })}
+                  placeholder="Ex: PES, PH, Ingénieur..."
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-1 focus:ring-purple-600"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Établissement universitaire</label>
+                <input
+                  type="text"
+                  value={newUserData.institution}
+                  onChange={(e) => setNewUserData({ ...newUserData, institution: e.target.value })}
+                  placeholder="Ex: FST Fès, ENSA Fès..."
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-1 focus:ring-purple-600"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateUserOpen(false)}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 cursor-pointer"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-3.5 py-1.5 rounded-lg text-white bg-purple-700 hover:bg-purple-800 font-bold cursor-pointer"
+                >
+                  Créer le compte
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Application Review Modal for Admin */}
+      {selectedAppForReview && (
+        <ApplicationReviewModal
+          application={selectedAppForReview}
+          isOpen={Boolean(selectedAppForReview)}
+          onClose={() => setSelectedAppForReview(null)}
+          onUpdateStatus={(appId, newStatus, payload) => {
+            ApplicationService.updateStatus(appId, newStatus, payload);
+            setSelectedAppForReview(null);
+            showFeedback(`Dossier #${appId} mis à jour avec le statut : ${newStatus}`);
+            if (onRefreshData) onRefreshData();
+          }}
+          currentUser={currentUser.name}
+          language={language}
+        />
+      )}
+    </div>
+  );
+};
