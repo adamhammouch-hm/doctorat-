@@ -320,6 +320,8 @@ export const AdmissionWaitlistService = {
 
   /**
    * Candidate confirms their doctoral registration within the allocated deadline.
+   * Automatically withdraws all other concurrent applications from the same candidate
+   * for the same session, then triggers waitlist promotion for freed spots.
    */
   confirmCandidateRegistration(
     applicationId: string,
@@ -348,21 +350,95 @@ export const AdmissionWaitlistService = {
       date: formattedDate,
       action: 'Inscription administrative confirmée par le candidat',
       author: candidateName,
-      note: 'Le candidat a validé son engagement et confirmé son inscription dans les délais impartis.',
+      note: `Le candidat a validé son engagement et confirmé son inscription dans les délais impartis sur le sujet [${app.topicCode}] ${app.topicTitle}.`,
+    });
+
+    // Auto-withdraw all OTHER applications of the same candidate for the same academic session
+    const withdrawnTopicCodes: string[] = [];
+    const topicsToCheckWaitlist: string[] = [];
+
+    applications.forEach((other) => {
+      if (other.id === applicationId) return; // Skip the confirmed one
+      // Same candidate check (email or id)
+      const isSameCandidate =
+        other.candidateEmail.toLowerCase().trim() === app.candidateEmail.toLowerCase().trim() ||
+        (app.candidateId && other.candidateId === app.candidateId);
+      if (!isSameCandidate) return;
+      // Same academic session check (avoid affecting other sessions)
+      if (other.academicYear && app.academicYear && other.academicYear !== app.academicYear) return;
+      // Don't touch already-terminal statuses
+      if (
+        other.status === 'registration_confirmed' ||
+        other.status === 'withdrawn' ||
+        other.status === 'draft' ||
+        other.isDraft
+      ) return;
+
+      const previousStatus = other.status;
+      other.status = 'withdrawn';
+      other.history.push({
+        id: `audit-withdraw-${Date.now()}-${other.id.slice(-4)}`,
+        date: formattedDate,
+        action: 'Désistement automatique',
+        author: "Système — Confirmation d'inscription",
+        note: `Désistement automatique suite à la confirmation de l'inscription de ${candidateName} sur le sujet [${app.topicCode}] ${app.topicTitle}. Dossier précédent : statut "${previousStatus}".`,
+      });
+
+      withdrawnTopicCodes.push(other.topicCode);
+
+      // If this application had an admission spot, its topic needs waitlist promotion check
+      if (
+        previousStatus === 'admitted' ||
+        previousStatus === 'accepted' ||
+        previousStatus === 'registration_pending'
+      ) {
+        topicsToCheckWaitlist.push(other.topicId);
+      }
     });
 
     ApplicationService.saveApplications(applications);
 
-    // Notify Structure Director
+    // Notify Structure Director of confirmed registration
     const directorEmail = getStructureDirectorEmail();
     NotificationService.send({
       recipientEmail: directorEmail,
       recipientRole: 'structure_director',
       type: 'submission',
       title: `Inscription confirmée : ${candidateName} (Sujet ${app.topicCode})`,
-      message: `Le candidat admis ${candidateName} a validé son inscription administrative en ligne pour le sujet ${app.topicCode}.`,
+      message: `Le candidat admis ${candidateName} a validé son inscription administrative en ligne pour le sujet ${app.topicCode}.${withdrawnTopicCodes.length > 0 ? ` Désistement automatique prononcé pour les sujets : ${withdrawnTopicCodes.join(', ')}.` : ''}`,
       relatedApplicationId: app.id,
     });
+
+    // Notify candidate about auto-withdrawals
+    if (withdrawnTopicCodes.length > 0) {
+      NotificationService.send({
+        recipientEmail: app.candidateEmail,
+        recipientRole: 'candidate',
+        type: 'decision',
+        title: `Désistement automatique — Sujets : ${withdrawnTopicCodes.join(', ')}`,
+        message: `Suite à la confirmation de votre inscription sur le sujet [${app.topicCode}], vos candidatures pour les sujets suivants ont été clôturées automatiquement : ${withdrawnTopicCodes.join(', ')}. Conformément aux règles de la session doctorale, une seule inscription définitive est autorisée.`,
+        relatedApplicationId: app.id,
+      });
+
+      // For admitted spots that were freed, trigger waitlist promotion scan
+      if (topicsToCheckWaitlist.length > 0) {
+        const allApps = ApplicationService.getApplications();
+        // Notify structure director to check waitlist for freed spots
+        topicsToCheckWaitlist.forEach((topicId) => {
+          const freedWaitlistApp = allApps.find((a) => a.topicId === topicId && (a.status === 'waitlist' || a.status === 'waitlisted'));
+          if (freedWaitlistApp) {
+            NotificationService.send({
+              recipientEmail: directorEmail,
+              recipientRole: 'structure_director',
+              type: 'waitlist_proposal',
+              title: `Place vacante libérée — Vérifiez la liste d'attente`,
+              message: `Suite au désistement automatique de ${candidateName} pour le sujet [${freedWaitlistApp.topicCode}], une place est disponible. Veuillez vérifier et valider le repêchage depuis la liste d'attente.`,
+              relatedTopicId: topicId,
+            });
+          }
+        });
+      }
+    }
 
     return { success: true };
   },

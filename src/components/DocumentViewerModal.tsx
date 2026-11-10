@@ -91,120 +91,17 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
             setPages([url]);
             setIsLoading(false);
           } else {
-            // Document was a simulated prototype or bytes were cleared
-            generateSimulatedPreview(doc);
+            setErrorMessage('Document indisponible ou fichier non récupérable.');
+            setIsLoading(false);
           }
         });
       }
     }).catch((err) => {
       console.warn('Error fetching document from storage', err);
-      generateSimulatedPreview(doc);
+      setErrorMessage('Document indisponible ou fichier non récupérable.');
+      setIsLoading(false);
     });
   }, [isOpen, doc]);
-
-  // Generate a clean preview representation for seeded prototype records
-  const generateSimulatedPreview = (documentItem: ApplicationDocument) => {
-    try {
-      const canvas = window.document.createElement('canvas');
-      canvas.width = 900;
-      canvas.height = 1200;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        // Page background
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, 900, 1200);
-
-        // Header band
-        ctx.fillStyle = '#065f46';
-        ctx.fillRect(0, 0, 900, 100);
-
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 22px system-ui, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('UNIVERSITÉ SIDI MOHAMED BEN ABDELLAH — FÈS', 450, 45);
-        ctx.font = '14px system-ui, sans-serif';
-        ctx.fillText('Centre d’Études Doctorales (CEDoc) — Pôle Doctoral', 450, 75);
-
-        // Watermark stamp
-        ctx.save();
-        ctx.translate(450, 600);
-        ctx.rotate(-Math.PI / 6);
-        ctx.strokeStyle = 'rgba(6, 95, 70, 0.12)';
-        ctx.lineWidth = 6;
-        ctx.strokeRect(-250, -60, 500, 120);
-        ctx.fillStyle = 'rgba(6, 95, 70, 0.12)';
-        ctx.font = 'bold 36px system-ui, sans-serif';
-        ctx.fillText('DOCUMENT CERTIFIÉ USMBA', 0, 15);
-        ctx.restore();
-
-        // Document details card
-        ctx.fillStyle = '#f8fafc';
-        ctx.strokeStyle = '#cbd5e1';
-        ctx.lineWidth = 2;
-        ctx.fillRect(80, 160, 740, 260);
-        ctx.strokeRect(80, 160, 740, 260);
-
-        ctx.fillStyle = '#0f172a';
-        ctx.font = 'bold 22px system-ui, sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(documentItem.name, 110, 210);
-
-        ctx.font = '16px system-ui, sans-serif';
-        ctx.fillStyle = '#475569';
-        ctx.fillText(`Nom du fichier : ${documentItem.fileName}`, 110, 255);
-        ctx.fillText(`Catégorie : ${documentItem.category.toUpperCase()}`, 110, 290);
-        ctx.fillText(`Taille déclarée : ${documentItem.fileSize}`, 110, 325);
-        if (candidateName) {
-          ctx.fillText(`Candidat : ${candidateName}`, 110, 360);
-        }
-        ctx.fillText(`Date de versement : ${documentItem.uploadedAt || 'Session en cours'}`, 110, 395);
-
-        // Verification stamp
-        ctx.fillStyle = '#f1f5f9';
-        ctx.fillRect(80, 460, 740, 500);
-        ctx.strokeStyle = '#e2e8f0';
-        ctx.strokeRect(80, 460, 740, 500);
-
-        ctx.fillStyle = '#065f46';
-        ctx.font = 'bold 18px system-ui, sans-serif';
-        ctx.fillText('REGISTRE DU GUICHET NUMÉRIQUE DES THÈSES', 110, 510);
-
-        ctx.fillStyle = '#334155';
-        ctx.font = '15px system-ui, sans-serif';
-        ctx.fillText('Ce document numérique a été enregistré dans le dossier doctoral de l’USMBA.', 110, 550);
-        ctx.fillText('Conformément aux directives ministérielles, l’original papier sera', 110, 580);
-        ctx.fillText('contrôlé physiquement au guichet du CEDoc lors de l’inscription définitive.', 110, 610);
-
-        ctx.fillStyle = '#64748b';
-        ctx.font = 'italic 13px system-ui, sans-serif';
-        ctx.fillText(`Identifiant unique de la pièce : ${documentItem.id}`, 110, 700);
-        ctx.fillText('Plateforme Doctorale Officielle USMBA — Sécurisation locale des données', 110, 730);
-
-        // Footer line
-        ctx.strokeStyle = '#065f46';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(80, 1120);
-        ctx.lineTo(820, 1120);
-        ctx.stroke();
-
-        ctx.fillStyle = '#64748b';
-        ctx.font = '12px system-ui, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('Université Sidi Mohamed Ben Abdellah · BP 2626 Fès · www.usmba.ac.ma', 450, 1150);
-
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-        setPages([dataUrl]);
-        setIsLoading(false);
-        return;
-      }
-    } catch (e) {
-      console.warn('Canvas simulation failed', e);
-    }
-
-    setErrorMessage('Le contenu de cette pièce justificative n’est plus disponible dans le stockage local.');
-    setIsLoading(false);
-  };
 
   if (!isOpen || !doc) return null;
 

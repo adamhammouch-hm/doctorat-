@@ -262,6 +262,7 @@ export interface CandidateApplication {
   candidateName: string;
   candidateEmail: string;
   candidatePhone: string;
+  academicYear?: string;
   cne: string;
   cin: string;
   masterDegree: string;
