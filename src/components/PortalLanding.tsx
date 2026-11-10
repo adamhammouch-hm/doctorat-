@@ -38,22 +38,18 @@ import {
 interface PortalLandingProps {
   language: Language;
   onLoginSuccess: (user: AppUser) => void;
-  onBrowseCatalog: () => void;
-  totalTopicsCount: number;
 }
 
 export const PortalLanding: React.FC<PortalLandingProps> = ({
   language,
   onLoginSuccess,
-  onBrowseCatalog,
-  totalTopicsCount,
 }) => {
   const isRtl = language === 'ar';
   const [viewMode, setViewMode] = useState<'login' | 'register' | 'forgot'>('login');
 
-  // Form states
-  const [email, setEmail] = useState('candidat.test@usmba.ma');
-  const [password, setPassword] = useState('Doctorat2025!');
+  // Form states - empty credentials without pre-filling
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [resetToken, setResetToken] = useState('');
@@ -63,13 +59,6 @@ export const PortalLanding: React.FC<PortalLandingProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [showDemoAccounts, setShowDemoAccounts] = useState(false);
-
-  const handleFillTestAccount = (testEmail: string) => {
-    setEmail(testEmail);
-    setPassword('Doctorat2025!');
-    setErrorMessage(null);
-  };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -222,32 +211,12 @@ export const PortalLanding: React.FC<PortalLandingProps> = ({
             </div>
           </div>
 
-          {/* Public Catalog Discovery Card */}
-          <div className="p-5 bg-gradient-to-r from-emerald-800 to-emerald-950 text-white rounded-xl shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-700/60 px-2 py-0.5 rounded text-emerald-200">
-                  Accès Libre
-                </span>
-                <span className="text-xs text-emerald-200">Campagne 2026/2027</span>
-              </div>
-              <h3 className="text-base font-bold text-white">
-                Consulter les Sujets de Thèse sans compte
-              </h3>
-              <p className="text-xs text-emerald-100/80 max-w-md">
-                Parcourez le catalogue des {totalTopicsCount} sujets de recherche proposés par les laboratoires et établissements de l'USMBA.
-              </p>
+          {/* Institutional Portal Notice */}
+          <div className="p-4 bg-slate-100/80 border border-slate-200 rounded-xl text-xs text-slate-600 leading-relaxed">
+            <div className="font-bold text-slate-800 mb-1">
+              Accès réservé aux membres de la communauté doctorale
             </div>
-
-            <button
-              type="button"
-              onClick={onBrowseCatalog}
-              className="px-4 py-2.5 rounded-lg text-xs font-bold text-emerald-950 bg-white hover:bg-emerald-50 flex items-center gap-2 transition-all cursor-pointer shrink-0 shadow-sm"
-            >
-              <Search className="w-4 h-4 text-emerald-800" />
-              <span>Explorer le Catalogue</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+            L'accès aux espaces professionnels (Directeurs de thèse, Direction de structure, Administration) s'effectue via vos identifiants institutionnels. Les nouveaux candidats peuvent créer leur compte ci-contre pour accéder au catalogue et soumettre leur dossier.
           </div>
         </div>
 
@@ -536,91 +505,6 @@ export const PortalLanding: React.FC<PortalLandingProps> = ({
                 </div>
               </div>
             )}
-
-            {/* COLLAPSIBLE DRAWER: 4 TEST PROFILES */}
-            <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/70">
-              <button
-                type="button"
-                onClick={() => setShowDemoAccounts(!showDemoAccounts)}
-                className="w-full p-3 flex items-center justify-between text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-700" />
-                  <span>Comptes de démonstration officiels (4 profils)</span>
-                </div>
-                {showDemoAccounts ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </button>
-
-              {showDemoAccounts && (
-                <div className="p-3 pt-0 space-y-2 border-t border-slate-200/60 bg-white">
-                  <div className="text-[11px] text-slate-500 pt-2">
-                    Cliquez sur un profil pour pré-remplir ses identifiants :
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-1.5 text-xs">
-                    <button
-                      type="button"
-                      onClick={() => handleFillTestAccount('candidat.test@usmba.ma')}
-                      className="text-left p-2 rounded-lg border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/40 transition-colors flex items-center justify-between cursor-pointer"
-                    >
-                      <div>
-                        <div className="font-bold text-slate-900">1. Candidat au doctorat</div>
-                        <div className="text-[10px] text-slate-500 font-mono">candidat.test@usmba.ma</div>
-                      </div>
-                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">
-                        Sélectionner
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleFillTestAccount('directeur.these.test@usmba.ma')}
-                      className="text-left p-2 rounded-lg border border-slate-200 hover:border-amber-500 hover:bg-amber-50/40 transition-colors flex items-center justify-between cursor-pointer"
-                    >
-                      <div>
-                        <div className="font-bold text-slate-900">2. Directeur de thèse</div>
-                        <div className="text-[10px] text-slate-500 font-mono">directeur.these.test@usmba.ma</div>
-                      </div>
-                      <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded">
-                        Sélectionner
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleFillTestAccount('directeur.structure.test@usmba.ma')}
-                      className="text-left p-2 rounded-lg border border-slate-200 hover:border-blue-500 hover:bg-blue-50/40 transition-colors flex items-center justify-between cursor-pointer"
-                    >
-                      <div>
-                        <div className="font-bold text-slate-900">3. Directeur de structure</div>
-                        <div className="text-[10px] text-slate-500 font-mono">directeur.structure.test@usmba.ma</div>
-                      </div>
-                      <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded">
-                        Sélectionner
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleFillTestAccount('admin.test@usmba.ma')}
-                      className="text-left p-2 rounded-lg border border-slate-200 hover:border-purple-500 hover:bg-purple-50/40 transition-colors flex items-center justify-between cursor-pointer"
-                    >
-                      <div>
-                        <div className="font-bold text-slate-900">4. Administrateur plateforme</div>
-                        <div className="text-[10px] text-slate-500 font-mono">admin.test@usmba.ma</div>
-                      </div>
-                      <span className="text-[10px] bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded">
-                        Sélectionner
-                      </span>
-                    </button>
-                  </div>
-
-                  <div className="text-[11px] text-slate-400 font-mono text-center pt-1">
-                    Mot de passe commun : <span className="text-slate-700 font-bold">Doctorat2025!</span>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </div>

@@ -66,9 +66,9 @@ export const translations = {
     deadlineLabel: 'Date limite',
     applicantsLabel: 'Candidats enregistrés',
     btnViewDetails: 'Voir la fiche détaillée',
-    btnAddToCart: 'Ajouter au panier',
-    btnInCart: 'Dans votre sélection',
-    btnLimitReached: 'Limite atteinte (max {max})',
+    btnAddToCart: 'Postuler à ce sujet',
+    btnInCart: 'Candidature en cours',
+    btnLimitReached: 'Candidature unique atteinte',
 
     // Workflow Stepper (Documented: Structure -> Centre -> Pôle)
     workflowTitle: 'Chaîne de validation institutionnelle',
@@ -195,9 +195,9 @@ export const translations = {
     deadlineLabel: 'آخر أجل',
     applicantsLabel: 'عدد المترشحين',
     btnViewDetails: 'عرض البطاقة المفصلة',
-    btnAddToCart: 'إضافة إلى السلة',
-    btnInCart: 'ضمن اختياراتك',
-    btnLimitReached: 'تم بلوغ الحد الأقصى ({max})',
+    btnAddToCart: 'الترشح لهذا الموضوع',
+    btnInCart: 'ترشيحك الحالي',
+    btnLimitReached: 'تم تسجيل الترشيح (موضوع واحد)',
 
     // Workflow Stepper
     workflowTitle: 'مسار المصادقة المؤسساتي',

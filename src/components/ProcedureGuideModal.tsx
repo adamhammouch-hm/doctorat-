@@ -37,13 +37,13 @@ export const ProcedureGuideModal: React.FC<ProcedureGuideModalProps> = ({
   const steps = [
     {
       num: '01',
-      title: 'Consultation libre du catalogue',
-      desc: 'Découvrez les sujets validés par les laboratoires et le Pôle Doctoral de l’USMBA sans compte préalable.',
+      title: 'Connexion ou création de compte candidat',
+      desc: 'Accédez à votre espace sécurisé avec vos identifiants ou créez votre compte candidat en quelques clics.',
     },
     {
       num: '02',
-      title: 'Sélection d’intérêt dans le panier',
-      desc: 'Ajoutez jusqu’à 3 sujets à votre panier temporaire pour comparer les exigences scientifiques.',
+      title: 'Choix du sujet de thèse unique',
+      desc: 'Consultez les sujets officiellement validés et postulez directement au sujet correspondant à votre projet.',
     },
     {
       num: '03',

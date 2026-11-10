@@ -20,7 +20,8 @@ import {
   BookOpen, 
   Layers, 
   Mail,
-  ShieldCheck
+  ShieldCheck,
+  Send
 } from 'lucide-react';
 
 interface TopicDetailModalProps {
@@ -28,12 +29,10 @@ interface TopicDetailModalProps {
   language: Language;
   isOpen: boolean;
   onClose: () => void;
-  isInCart: boolean;
-  canAddToCart: boolean;
-  maxCartLimit: number;
-  onAddToCart: (topicId: string) => void;
-  onRemoveFromCart: (topicId: string) => void;
-  onStartApplication?: (topic: ThesisTopic) => void;
+  onApply?: (topic: ThesisTopic) => void;
+  hasActiveApplication?: boolean;
+  isCurrentApplicationTopic?: boolean;
+  isDraft?: boolean;
 }
 
 export const TopicDetailModal: React.FC<TopicDetailModalProps> = ({
@@ -41,12 +40,10 @@ export const TopicDetailModal: React.FC<TopicDetailModalProps> = ({
   language,
   isOpen,
   onClose,
-  isInCart,
-  canAddToCart,
-  maxCartLimit,
-  onAddToCart,
-  onRemoveFromCart,
-  onStartApplication,
+  onApply,
+  hasActiveApplication = false,
+  isCurrentApplicationTopic = false,
+  isDraft = false,
 }) => {
   if (!isOpen || !topic) return null;
 
@@ -284,40 +281,42 @@ export const TopicDetailModal: React.FC<TopicDetailModalProps> = ({
 
           <div className="flex items-center gap-2">
             {topic.status === 'open' && topic.isOfficialPublication ? (
-              <>
-                {isInCart ? (
-                  <button
-                    type="button"
-                    onClick={() => onRemoveFromCart(topic.id)}
-                    className="px-3.5 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-semibold text-xs transition-colors inline-flex items-center gap-1.5 border border-emerald-300 cursor-pointer"
-                  >
-                    <Check className="w-4 h-4" />
-                    <span>{t('btnInCart')}</span>
-                  </button>
-                ) : canAddToCart ? (
-                  <button
-                    type="button"
-                    onClick={() => onAddToCart(topic.id)}
-                    className="px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs transition-all border border-slate-300 inline-flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>{t('btnAddToCart')}</span>
-                  </button>
-                ) : null}
-
-                {onStartApplication && (
+              onApply && (
+                isCurrentApplicationTopic ? (
                   <button
                     type="button"
                     onClick={() => {
                       onClose();
-                      onStartApplication(topic);
+                      onApply(topic);
+                    }}
+                    className="px-4 py-2 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300 font-bold text-xs transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>{isDraft ? 'Reprendre le brouillon' : 'Voir ma candidature'}</span>
+                  </button>
+                ) : hasActiveApplication ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="px-4 py-2 rounded-lg bg-slate-100 text-slate-400 border border-slate-200 font-semibold text-xs cursor-not-allowed"
+                    title="Vous avez déjà un dossier actif. Un candidat ne peut postuler qu'à un seul sujet."
+                  >
+                    <span>Candidature unique déjà déposée</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onApply(topic);
                     }}
                     className="px-4 py-2 rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
                   >
-                    <span>Commencer ma candidature</span>
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Postuler à ce sujet</span>
                   </button>
-                )}
-              </>
+                )
+              )
             ) : (
               <span className="text-xs text-slate-500 bg-slate-200 px-3 py-1.5 rounded-md font-medium">
                 Candidatures fermées

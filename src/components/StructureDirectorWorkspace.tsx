@@ -84,8 +84,8 @@ export const StructureDirectorWorkspace: React.FC<StructureDirectorWorkspaceProp
   onRequestTopicRevision,
   onRejectTopic,
   onRefreshApplications,
-  currentUserName = 'Pr. Mostafa Bennani',
-  currentUserEmail = 'directeur.structure.test@usmba.ma',
+  currentUserName = '',
+  currentUserEmail = '',
   language: _language,
 }) => {
   const [activeTab, setActiveTab] = useState<
@@ -204,22 +204,12 @@ export const StructureDirectorWorkspace: React.FC<StructureDirectorWorkspaceProp
 
   return (
     <div className="space-y-6">
-      {/* Workspace Top Banner */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Top Action Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 uppercase tracking-wider mb-1">
-            <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-            <span>Direction de Structure · Arbitrage & Supervision</span>
-            <span className="text-[11px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md normal-case border border-slate-200">
-              {currentUserName}
-            </span>
-          </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">
-            Espace directeur de structure
+          <h1 className="text-xl font-bold text-slate-900">
+            Supervision et arbitrage des candidatures
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Supervision des sujets, des validations, des admissions et des inscriptions
-          </p>
         </div>
 
         <div className="flex items-center gap-2">

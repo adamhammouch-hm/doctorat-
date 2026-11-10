@@ -23,11 +23,6 @@ import {
 interface HeaderProps {
   language: Language;
   onLanguageChange: (lang: Language) => void;
-  cartCount: number;
-  maxCartLimit: number;
-  onOpenCart: () => void;
-  onOpenAuth: () => void;
-  onOpenGuide: () => void;
   onNavigateHome: () => void;
   currentUser: AppUser | null;
   onLogout: () => void;
@@ -40,11 +35,6 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   language,
   onLanguageChange,
-  cartCount,
-  maxCartLimit,
-  onOpenCart,
-  onOpenAuth,
-  onOpenGuide: _onOpenGuide,
   onNavigateHome,
   currentUser,
   onLogout,
@@ -125,22 +115,8 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </div>
 
-            {/* Cart trigger button */}
-            <button
-              type="button"
-              onClick={onOpenCart}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-800 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 border border-slate-200 rounded-lg transition-all cursor-pointer"
-              aria-label="Mon panier"
-            >
-              <ShoppingBag className="w-4 h-4 text-emerald-700" />
-              <span className="hidden sm:inline">{t('navCart')}</span>
-              <span className="text-[11px] px-1.5 py-0.2 rounded-full font-bold bg-emerald-700 text-white">
-                {cartCount}/{maxCartLimit}
-              </span>
-            </button>
-
             {/* Notification Bell (internal alerts) */}
-            {onOpenNotifications && (
+            {onOpenNotifications && currentUser && (
               <button
                 type="button"
                 onClick={onOpenNotifications}
@@ -157,28 +133,30 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
-            {/* Authenticated user control or login button */}
-            {currentUser ? (
+            {/* Authenticated user control */}
+            {currentUser && (
               <div className="hidden sm:flex items-center gap-2">
-                {/* View Switcher: Between Catalog & Workspace */}
-                {activeView === 'workspace' ? (
-                  <button
-                    type="button"
-                    onClick={() => onToggleView('catalog')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-emerald-800 bg-slate-50 hover:bg-emerald-50 border border-slate-200 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <Layers className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>{isRtl ? 'دليل المواضيع' : 'Catalogue'}</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => onToggleView('workspace')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <LayoutDashboard className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>{isRtl ? 'فضائي الخاص' : 'Mon Espace'}</span>
-                  </button>
+                {/* View Switcher: ONLY for Candidate */}
+                {currentUser.role === 'candidate' && (
+                  activeView === 'workspace' ? (
+                    <button
+                      type="button"
+                      onClick={() => onToggleView('catalog')}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-emerald-800 bg-slate-50 hover:bg-emerald-50 border border-slate-200 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Layers className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>{isRtl ? 'دليل المواضيع' : 'Catalogue des Sujets'}</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onToggleView('workspace')}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <LayoutDashboard className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>{isRtl ? 'فضائي الخاص' : 'Mon Dossier'}</span>
+                    </button>
+                  )
                 )}
 
                 {/* User Info Capsule */}
@@ -206,55 +184,35 @@ export const Header: React.FC<HeaderProps> = ({
                   <LogOut className="w-4 h-4" />
                 </button>
               </div>
-            ) : (
-              <div className="hidden sm:flex items-center gap-2">
-                {activeView === 'catalog' ? (
-                  <button
-                    type="button"
-                    onClick={() => onToggleView('login')}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer shadow-2xs"
-                  >
-                    <LogIn className="w-3.5 h-3.5" />
-                    <span>Se connecter</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => onToggleView('catalog')}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-slate-800 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 border border-slate-200 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <Layers className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>Catalogue des Sujets</span>
-                  </button>
-                )}
-              </div>
             )}
 
-            {/* Mobile menu button */}
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="sm:hidden p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200"
-              aria-label="Menu"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
+            {/* Mobile menu button (only when logged in) */}
+            {currentUser && (
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="sm:hidden p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200"
+                aria-label="Menu"
+              >
+                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Mobile Drawer */}
-      {mobileMenuOpen && (
+      {mobileMenuOpen && currentUser && (
         <div className="sm:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-2 animate-in slide-in-from-top duration-150">
-          {currentUser ? (
-            <div className="space-y-2">
-              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                <div className="text-xs font-bold text-slate-900">{currentUser.name}</div>
-                <div className="text-[11px] font-semibold text-emerald-800">{getRoleLabel(currentUser.role)}</div>
-                <div className="text-[10px] text-slate-400 font-mono mt-0.5">{currentUser.email}</div>
-              </div>
+          <div className="space-y-2">
+            <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+              <div className="text-xs font-bold text-slate-900">{currentUser.name}</div>
+              <div className="text-[11px] font-semibold text-emerald-800">{getRoleLabel(currentUser.role)}</div>
+              <div className="text-[10px] text-slate-400 font-mono mt-0.5">{currentUser.email}</div>
+            </div>
 
-              {activeView === 'workspace' ? (
+            {currentUser.role === 'candidate' && (
+              activeView === 'workspace' ? (
                 <button
                   type="button"
                   onClick={() => {
@@ -276,48 +234,23 @@ export const Header: React.FC<HeaderProps> = ({
                   className="w-full py-2 px-3 text-left rtl:text-right text-xs font-bold text-emerald-800 bg-emerald-50 rounded-lg flex items-center gap-2 border border-emerald-200"
                 >
                   <LayoutDashboard className="w-4 h-4 text-emerald-700" />
-                  <span>{isRtl ? 'الولوج إلى فضائي الخاص' : 'Accéder à Mon Espace'}</span>
+                  <span>{isRtl ? 'الولوج إلى فضائي الخاص' : 'Accéder à Mon Dossier'}</span>
                 </button>
-              )}
+              )
+            )}
 
-              <button
-                type="button"
-                onClick={() => {
-                  onLogout();
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full py-2 text-center text-xs font-bold text-rose-700 hover:bg-rose-50 border border-rose-200 rounded-lg flex items-center justify-center gap-1.5"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>{isRtl ? 'تسجيل الخروج' : 'Se déconnecter'}</span>
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => {
-                  onToggleView('login');
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full py-2 text-center text-xs font-bold text-white bg-slate-900 rounded-lg flex items-center justify-center gap-2"
-              >
-                <LogIn className="w-4 h-4" />
-                <span>Portail de Connexion</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onToggleView('catalog');
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full py-2 text-center text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg flex items-center justify-center gap-2"
-              >
-                <Layers className="w-4 h-4 text-emerald-700" />
-                <span>Catalogue des Sujets de Thèse</span>
-              </button>
-            </div>
-          )}
+            <button
+              type="button"
+              onClick={() => {
+                onLogout();
+                setMobileMenuOpen(false);
+              }}
+              className="w-full py-2 text-center text-xs font-bold text-rose-700 hover:bg-rose-50 border border-rose-200 rounded-lg flex items-center justify-center gap-1.5"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>{isRtl ? 'تسجيل الخروج' : 'Se déconnecter'}</span>
+            </button>
+          </div>
         </div>
       )}
     </header>

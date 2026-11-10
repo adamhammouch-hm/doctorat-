@@ -49,8 +49,6 @@ interface CandidateWorkspaceProps {
   applications: CandidateApplication[];
   language: Language;
   onBrowseCatalog: () => void;
-  onOpenCart: () => void;
-  cartCount: number;
   onResumeDraft?: (app: CandidateApplication) => void;
   onApplicationUpdated?: (updated: CandidateApplication) => void;
   onApplicationDeleted?: () => void;
@@ -61,8 +59,6 @@ export const CandidateWorkspace: React.FC<CandidateWorkspaceProps> = ({
   applications,
   language,
   onBrowseCatalog,
-  onOpenCart,
-  cartCount,
   onResumeDraft,
   onApplicationUpdated,
   onApplicationDeleted,
@@ -251,20 +247,8 @@ export const CandidateWorkspace: React.FC<CandidateWorkspaceProps> = ({
             className="px-3.5 py-2 rounded-lg text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <Layers className="w-4 h-4 text-emerald-700" />
-            <span>Consulter le Catalogue</span>
+            <span>Consulter le Catalogue des Sujets</span>
           </button>
-          {cartCount > 0 && (
-            <button
-              type="button"
-              onClick={onOpenCart}
-              className="px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <span>Mon Panier</span>
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-800 text-white">
-                {cartCount}
-              </span>
-            </button>
-          )}
         </div>
       </div>
 

@@ -20,7 +20,6 @@ import {
 } from './types';
 import { 
   DEMO_TOPICS, 
-  CartService, 
   ApplicationService, 
   ThesisTopicService,
   filterAndSortTopics 
@@ -37,7 +36,6 @@ import { Header } from './components/Header';
 import { CatalogFilterBar } from './components/CatalogFilterBar';
 import { TopicCard } from './components/TopicCard';
 import { TopicDetailModal } from './components/TopicDetailModal';
-import { CartDrawer } from './components/CartDrawer';
 import { AuthModal } from './components/AuthModal';
 import { ProcedureGuideModal } from './components/ProcedureGuideModal';
 import { ThesisDirectorWorkspace } from './components/ThesisDirectorWorkspace';
@@ -97,10 +95,14 @@ export default function App() {
     AuthService.getCurrentUser() ? 'workspace' : 'login'
   );
 
-  // Strict route protection guard: unauthenticated users cannot access workspace
+  // Strict route protection guard:
+  // 1. Unauthenticated users are strictly confined to login ('login')
+  // 2. Non-candidates can NEVER access the candidate catalog ('catalog')
   useEffect(() => {
-    if (!currentUser && activeView === 'workspace') {
+    if (!currentUser && activeView !== 'login') {
       setActiveView('login');
+    } else if (currentUser && currentUser.role !== 'candidate' && activeView === 'catalog') {
+      setActiveView('workspace');
     }
   }, [currentUser, activeView]);
 
@@ -137,13 +139,8 @@ export default function App() {
     }
   }, []);
 
-  // 5. Cart state with localStorage synchronization
-  const [cartTopicIds, setCartTopicIds] = useState<string[]>(() => CartService.getCartTopics());
-  const [maxCartLimit, setMaxCartLimit] = useState<number>(() => CartService.getMaxLimit());
-
-  // 6. Modal and drawer states
+  // 5. Modal and drawer states
   const [detailTopic, setDetailTopic] = useState<ThesisTopic | null>(null);
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -205,75 +202,24 @@ export default function App() {
     return filterAndSortTopics(topics, filters);
   }, [topics, filters]);
 
-  // Topics currently in cart
-  const cartTopics = useMemo(() => {
-    return topics.filter((t) => cartTopicIds.includes(t.id));
-  }, [topics, cartTopicIds]);
-
-  // Cart operations
-  const handleAddToCart = (topicId: string) => {
-    const res = CartService.addTopic(topicId, maxCartLimit);
-    if (res.success) {
-      const updated = CartService.getCartTopics();
-      setCartTopicIds(updated);
-      const addedTopic = topics.find((t) => t.id === topicId);
-      showToast(
-        language === 'ar'
-          ? `تمت إضافة الموضوع إلى سلتك (${updated.length}/${maxCartLimit})`
-          : `Sujet ajouté à votre sélection (${updated.length}/${maxCartLimit}) : ${addedTopic?.code}`,
-        'success'
-      );
-    } else {
-      showToast(
-        language === 'ar'
-          ? `تم بلوغ الحد الأقصى (${maxCartLimit} مواضيع)`
-          : `Quota maximal atteint (${maxCartLimit} sujets autorisés).`,
-        'warning'
-      );
-    }
-  };
-
-  const handleRemoveFromCart = (topicId: string) => {
-    CartService.removeTopic(topicId);
-    setCartTopicIds(CartService.getCartTopics());
-    showToast(
-      language === 'ar' ? 'تم حذف الموضوع من السلة' : 'Sujet retiré de votre sélection',
-      'info'
+  // Active application of current candidate (if role is candidate)
+  const candidateActiveApp = useMemo(() => {
+    if (!currentUser || currentUser.role !== 'candidate') return null;
+    const userEmail = currentUser.email.toLowerCase().trim();
+    return (
+      applications.find(
+        (a) =>
+          a.candidateEmail.toLowerCase().trim() === userEmail ||
+          a.candidateId === currentUser.id
+      ) || null
     );
-  };
+  }, [applications, currentUser]);
 
-  const handleClearCart = () => {
-    CartService.clearCart();
-    setCartTopicIds([]);
-    showToast(
-      language === 'ar' ? 'تم تفريغ السلة بنجاح' : 'Votre sélection a été réinitialisée',
-      'info'
-    );
-  };
-
-  const handleSetMaxLimit = (limit: number) => {
-    CartService.setMaxLimit(limit);
-    setMaxCartLimit(limit);
-    const updated = CartService.getCartTopics();
-    setCartTopicIds(updated);
-    showToast(
-      language === 'ar'
-        ? `تم تحديث الحد الأقصى للاختيار: ${limit} موضوع`
-        : `Quota de sélection fixé à ${limit} sujet(s) maximum.`,
-      'info'
-    );
-  };
-
-  // Start Application workflow: gates through login and restores selection
+  // Start Application workflow: direct access for authenticated candidate
   const handleStartApplication = (targetTopic: ThesisTopic) => {
     if (!currentUser) {
-      setPendingApplicationTopic(targetTopic);
-      setIsCartOpen(false);
-      setIsAuthOpen(true);
-      showToast(
-        'Veuillez vous connecter ou créer votre compte candidat pour postuler. Votre sélection est sauvegardée.',
-        'info'
-      );
+      setActiveView('login');
+      showToast('Veuillez vous connecter pour postuler à ce sujet.', 'info');
       return;
     }
 
@@ -285,11 +231,26 @@ export default function App() {
       return;
     }
 
-    setIsCartOpen(false);
+    // Enforce 1 application rule: block if already submitted
+    if (candidateActiveApp && !candidateActiveApp.isDraft && candidateActiveApp.status !== 'draft') {
+      showToast(
+        'Vous avez déjà déposé votre candidature officielle. Consultez votre espace pour suivre son examen.',
+        'warning'
+      );
+      setActiveView('workspace');
+      return;
+    }
+
+    const existingDraft =
+      candidateActiveApp?.isDraft || candidateActiveApp?.status === 'draft'
+        ? candidateActiveApp
+        : null;
+
     setActiveApplicationModal({
       isOpen: true,
       topic: targetTopic,
-      existingApp: null,
+      existingApp:
+        existingDraft && existingDraft.topicId === targetTopic.id ? existingDraft : null,
     });
   };
 
@@ -437,7 +398,7 @@ export default function App() {
   const handleLoginSuccess = (user: AppUser) => {
     setCurrentUser(user);
 
-    // If candidate was initiating an application, restore topic and launch form wizard
+    // If candidate was initiating an application, launch form wizard
     if (pendingApplicationTopic && user.role === 'candidate') {
       setActiveApplicationModal({
         isOpen: true,
@@ -446,7 +407,7 @@ export default function App() {
       });
       setPendingApplicationTopic(null);
       showToast(
-        `Bienvenue, ${user.name}. Votre panier a été restauré pour débuter votre candidature.`,
+        `Bienvenue, ${user.name}. Vous pouvez débuter votre candidature.`,
         'success'
       );
     } else {
@@ -498,11 +459,6 @@ export default function App() {
       <Header
         language={language}
         onLanguageChange={setLanguage}
-        cartCount={cartTopicIds.length}
-        maxCartLimit={maxCartLimit}
-        onOpenCart={() => setIsCartOpen(true)}
-        onOpenAuth={() => setIsAuthOpen(true)}
-        onOpenGuide={() => setIsGuideOpen(true)}
         onNavigateHome={() => {
           setActiveView(currentUser ? 'workspace' : 'login');
           window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -518,14 +474,12 @@ export default function App() {
       {/* Main Content Area */}
       <main className="flex-1 container-constrained py-6 sm:py-8 space-y-6" ref={catalogSectionRef}>
         {/* VIEW 1: Portal Landing & Authentication Gateway */}
-        {activeView === 'login' && !currentUser ? (
+        {!currentUser || activeView === 'login' ? (
           <PortalLanding
             language={language}
             onLoginSuccess={handleLoginSuccess}
-            onBrowseCatalog={() => setActiveView('catalog')}
-            totalTopicsCount={topics.length}
           />
-        ) : currentUser && activeView === 'workspace' ? (
+        ) : activeView === 'workspace' ? (
           /* VIEW 2: Dedicated Role Workspaces */
           <div>
             {(currentUser.role === 'thesis_director' || (currentUser.role as any) === 'professor') && (
@@ -576,8 +530,6 @@ export default function App() {
                 applications={applications}
                 language={language}
                 onBrowseCatalog={() => setActiveView('catalog')}
-                onOpenCart={() => setIsCartOpen(true)}
-                cartCount={cartTopicIds.length}
                 onResumeDraft={handleResumeDraft}
                 onApplicationUpdated={(_updated) => setApplications(ApplicationService.getApplications())}
                 onApplicationDeleted={() => setApplications(ApplicationService.getApplications())}
@@ -585,39 +537,17 @@ export default function App() {
             )}
           </div>
         ) : (
-          /* VIEW 3: Public Catalog View (Accessible to all unauthenticated visitors and logged-in users) */
-          <div className="space-y-6">
-            {/* If visitor is browsing without account, show official visitor banner */}
-            {!currentUser && (
-              <div className="p-3.5 bg-gradient-to-r from-sky-50 via-slate-50 to-emerald-50 border border-sky-200/90 rounded-xl shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-sky-600 animate-pulse shrink-0" />
-                  <p className="text-slate-700 font-medium">
-                    {isRtl
-                      ? 'أنت تتصفح دليل مواضيع أطروحات الدكتوراه في وضع الزائر المفتوح. لتسجيل ترشيحك أو متابعة ملفك، يرجى تسجيل الدخول.'
-                      : 'Vous consultez le catalogue officiel des sujets de thèse en accès public libre. Pour postuler ou accéder à votre espace, veuillez vous connecter.'}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveView('login')}
-                  className="px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-2xs"
-                >
-                  <LogIn className="w-3.5 h-3.5" />
-                  <span>{isRtl ? 'بوابة الدخول' : 'Connexion / Portail'}</span>
-                </button>
-              </div>
-            )}
-
-            {/* If logged in but browsing catalog, show clean return banner */}
-            {currentUser && (
+          /* VIEW 3: Candidate Thesis Topics Catalog (EXCLUSIVELY for authenticated candidate) */
+          currentUser.role === 'candidate' && (
+            <div className="space-y-6">
+              {/* Return to My Application space button */}
               <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3 text-xs shadow-2xs">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
                   <span className="text-slate-600">
                     {isRtl
-                      ? `أنت تتصفح دليل المواضيع بحساب: ${currentUser.name}`
-                      : `Vous consultez le catalogue public avec le compte : ${currentUser.name}`}
+                      ? `دليل مواضيع الدكتوراه المفتوحة للترشيح · المترشح: ${currentUser.name}`
+                      : `Catalogue des sujets de thèse ouverts à candidature · Candidat : ${currentUser.name}`}
                   </span>
                 </div>
                 <button
@@ -626,61 +556,66 @@ export default function App() {
                   className="px-3 py-1.5 rounded-lg text-emerald-800 bg-emerald-50 hover:bg-emerald-100 font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <LayoutDashboard className="w-3.5 h-3.5" />
-                  <span>{isRtl ? 'العودة إلى فضائي الخاص' : 'Retour à mon espace'}</span>
+                  <span>{isRtl ? 'العودة إلى فضائي الخاص' : 'Retour à mon dossier'}</span>
                   <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
                 </button>
               </div>
-            )}
 
-            {/* Filter Bar */}
-            <CatalogFilterBar
-              language={language}
-              filters={filters}
-              onFilterChange={setFilters}
-              institutions={institutions}
-              laboratories={laboratories}
-              domains={domains}
-              academicYears={academicYears}
-              professors={professors}
-              totalResults={filteredTopics.length}
-            />
+              {/* Filter Bar */}
+              <CatalogFilterBar
+                language={language}
+                filters={filters}
+                onFilterChange={setFilters}
+                institutions={institutions}
+                laboratories={laboratories}
+                domains={domains}
+                academicYears={academicYears}
+                professors={professors}
+                totalResults={filteredTopics.length}
+              />
 
-            {/* Topics Grid */}
-            {filteredTopics.length === 0 ? (
-              <div className="bg-white border border-slate-200 rounded-xl p-10 text-center space-y-3">
-                <Layers className="w-10 h-10 text-slate-300 mx-auto" />
-                <h3 className="text-base font-bold text-slate-700">
-                  {t('noResultsTitle')}
-                </h3>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  {t('noResultsHint')}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setFilters(INITIAL_FILTERS)}
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 cursor-pointer"
-                >
-                  {t('btnResetFilters')}
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-                {filteredTopics.map((topic) => (
-                  <TopicCard
-                    key={topic.id}
-                    topic={topic}
-                    language={language}
-                    isInCart={cartTopicIds.includes(topic.id)}
-                    canAddToCart={cartTopicIds.length < maxCartLimit}
-                    maxCartLimit={maxCartLimit}
-                    onAddToCart={handleAddToCart}
-                    onRemoveFromCart={handleRemoveFromCart}
-                    onViewDetails={setDetailTopic}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+              {/* Topics Grid */}
+              {filteredTopics.length === 0 ? (
+                <div className="bg-white border border-slate-200 rounded-xl p-10 text-center space-y-3">
+                  <Layers className="w-10 h-10 text-slate-300 mx-auto" />
+                  <h3 className="text-base font-bold text-slate-700">
+                    {t('noResultsTitle')}
+                  </h3>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                    {t('noResultsHint')}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setFilters(INITIAL_FILTERS)}
+                    className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 cursor-pointer"
+                  >
+                    {t('btnResetFilters')}
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+                  {filteredTopics.map((topic) => {
+                    const isThisTopic = candidateActiveApp?.topicId === topic.id;
+                    const hasActiveApp = Boolean(candidateActiveApp && !candidateActiveApp.isDraft && candidateActiveApp.status !== 'draft');
+                    const isDraft = Boolean(candidateActiveApp?.isDraft || candidateActiveApp?.status === 'draft');
+
+                    return (
+                      <TopicCard
+                        key={topic.id}
+                        topic={topic}
+                        language={language}
+                        onViewDetails={setDetailTopic}
+                        onApply={handleStartApplication}
+                        hasActiveApplication={hasActiveApp}
+                        isCurrentApplicationTopic={isThisTopic}
+                        isDraft={isDraft}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )
         )}
       </main>
 
@@ -690,32 +625,10 @@ export default function App() {
         language={language}
         isOpen={Boolean(detailTopic)}
         onClose={() => setDetailTopic(null)}
-        isInCart={detailTopic ? cartTopicIds.includes(detailTopic.id) : false}
-        canAddToCart={cartTopicIds.length < maxCartLimit}
-        maxCartLimit={maxCartLimit}
-        onAddToCart={handleAddToCart}
-        onRemoveFromCart={handleRemoveFromCart}
-        onStartApplication={handleStartApplication}
-      />
-
-      {/* Cart Drawer */}
-      <CartDrawer
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        cartTopics={cartTopics}
-        maxLimit={maxCartLimit}
-        onSetMaxLimit={handleSetMaxLimit}
-        onRemoveTopic={handleRemoveFromCart}
-        onClearCart={handleClearCart}
-        onStartApplication={() => {
-          if (cartTopics.length > 0) {
-            handleStartApplication(cartTopics[0]);
-          } else {
-            showToast('Votre panier est vide. Sélectionnez un sujet de thèse.', 'info');
-          }
-        }}
-        onViewDetails={setDetailTopic}
-        language={language}
+        onApply={handleStartApplication}
+        hasActiveApplication={Boolean(candidateActiveApp && !candidateActiveApp.isDraft && candidateActiveApp.status !== 'draft')}
+        isCurrentApplicationTopic={candidateActiveApp?.topicId === detailTopic?.id}
+        isDraft={Boolean(candidateActiveApp?.isDraft || candidateActiveApp?.status === 'draft')}
       />
 
       {/* 5-Step Application Form Wizard Modal */}
@@ -728,8 +641,6 @@ export default function App() {
           existingApplication={activeApplicationModal.existingApp}
           onApplicationSubmitted={(app) => {
             setApplications(ApplicationService.getApplications());
-            // Remove from cart once submitted
-            handleRemoveFromCart(app.topicId);
             setActiveView('workspace');
             showToast(`Candidature pour "${app.topicCode}" enregistrée avec succès.`, 'success');
           }}
@@ -742,7 +653,7 @@ export default function App() {
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
         language={language}
-        selectedTopicsCount={pendingApplicationTopic ? 1 : cartTopicIds.length}
+        selectedTopicsCount={pendingApplicationTopic ? 1 : 0}
         onLoginSuccess={handleLoginSuccess}
       />
 

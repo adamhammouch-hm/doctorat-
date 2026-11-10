@@ -59,8 +59,7 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({
   language,
   onRefreshData: _onRefreshData,
 }) => {
-  const isRtl = language === 'ar';
-  const [activeTab, setActiveTab] = useState<'users' | 'matrix' | 'supervision' | 'audit' | 'settings'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'supervision' | 'audit' | 'settings'>('users');
 
   // Accounts state
   const [accounts, setAccounts] = useState<AuthAccount[]>(() => AuthService.getAccounts());
@@ -273,7 +272,7 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({
             Gouvernance & Supervision Système
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Gestion des accès, matrice des privilèges, conformité de la candidature unique et traçabilité intégrale
+            Gestion des accès, conformité de la candidature unique et traçabilité intégrale
           </p>
         </div>
 
@@ -302,19 +301,6 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({
         >
           <Users className="w-4 h-4" />
           <span>Utilisateurs & Comptes ({accounts.length})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('matrix')}
-          className={`pb-3 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
-            activeTab === 'matrix'
-              ? 'border-purple-700 text-purple-900'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Shield className="w-4 h-4" />
-          <span>Matrice Rôles & Privilèges</span>
         </button>
 
         <button
@@ -487,98 +473,7 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({
         </div>
       )}
 
-      {/* TAB 2: RBAC MATRIX */}
-      {activeTab === 'matrix' && (
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-6">
-          <div>
-            <h3 className="text-base font-bold text-slate-900">
-              Matrice Académique des Privilèges (RBAC)
-            </h3>
-            <p className="text-xs text-slate-500 mt-1">
-              Règles d’isolation et de contrôle d’accès strictes appliquées sur la plateforme USMBA
-            </p>
-          </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border border-slate-200 rounded-lg">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold">
-                <tr>
-                  <th className="py-3 px-4 border-r border-slate-200">Fonctionnalité / Droit</th>
-                  <th className="py-3 px-4 border-r border-slate-200 text-center">Candidat</th>
-                  <th className="py-3 px-4 border-r border-slate-200 text-center">Directeur de thèse</th>
-                  <th className="py-3 px-4 border-r border-slate-200 text-center">Directeur de structure</th>
-                  <th className="py-3 px-4 text-center">Administrateur</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
-                <tr>
-                  <td className="py-2.5 px-4 font-medium border-r border-slate-200">Consultation du catalogue public des sujets</td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><Check className="w-4 h-4 text-emerald-600 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><Check className="w-4 h-4 text-emerald-600 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><Check className="w-4 h-4 text-emerald-600 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center"><Check className="w-4 h-4 text-emerald-600 mx-auto" /></td>
-                </tr>
-                <tr className="bg-slate-50/40">
-                  <td className="py-2.5 px-4 font-medium border-r border-slate-200">Sélection panier & candidature unique (1 sujet)</td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><Check className="w-4 h-4 text-emerald-600 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-4 font-medium border-r border-slate-200">Gestion et suppression de ses propres brouillons</td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><Check className="w-4 h-4 text-emerald-600 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                </tr>
-                <tr className="bg-slate-50/40">
-                  <td className="py-2.5 px-4 font-medium border-r border-slate-200">Proposition et modification de sujets de recherche</td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><Check className="w-4 h-4 text-emerald-600 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-4 font-medium border-r border-slate-200">Avis scientifique et classement des candidatures affiliées</td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><Check className="w-4 h-4 text-emerald-600 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                </tr>
-                <tr className="bg-slate-50/40">
-                  <td className="py-2.5 px-4 font-medium border-r border-slate-200">Signature électronique & validation institutionnelle</td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><Check className="w-4 h-4 text-emerald-600 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-4 font-medium border-r border-slate-200">Contrôle physique des pièces au guichet CEDoc</td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><Check className="w-4 h-4 text-emerald-600 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                </tr>
-                <tr className="bg-slate-50/40">
-                  <td className="py-2.5 px-4 font-medium border-r border-slate-200">Gestion des comptes, des rôles et des accès</td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center"><Check className="w-4 h-4 text-emerald-600 mx-auto" /></td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-4 font-medium border-r border-slate-200">Supervision globale, détection des doublons & audit logs</td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center border-r border-slate-200"><X className="w-4 h-4 text-slate-300 mx-auto" /></td>
-                  <td className="py-2.5 px-4 text-center"><Check className="w-4 h-4 text-emerald-600 mx-auto" /></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
 
       {/* TAB 3: DATA SUPERVISION & DUPLICATE AUDITOR */}
       {activeTab === 'supervision' && (
@@ -780,7 +675,7 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({
                 <span>Règle de Candidature Unique</span>
               </div>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Le plafond de candidatures par candidat est strictement verrouillé à <strong>1 sujet maximum</strong> (au panier comme à la soumission finale). Tout brouillon existant doit être validé ou supprimé avant de postuler à un autre sujet.
+                Le plafond de candidatures par candidat est strictement verrouillé à <strong>1 sujet unique</strong>. Tout brouillon existant doit être validé ou supprimé avant de pouvoir postuler à un autre sujet.
               </p>
             </div>
           </div>

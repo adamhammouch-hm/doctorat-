@@ -222,12 +222,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         </div>
 
-        {/* Restore Cart Notice if starting application */}
+        {/* Restore Selection Notice if starting application */}
         {selectedTopicsCount > 0 && viewMode === 'login' && (
           <div className="p-3 bg-emerald-50 border-b border-emerald-100 flex items-center gap-2 text-xs text-emerald-950">
             <Sparkles className="w-4 h-4 text-emerald-700 shrink-0" />
             <span>
-              Vos <strong>{selectedTopicsCount} sujet(s)</strong> sélectionnés dans le panier seront automatiquement associés à votre candidature après connexion.
+              Le sujet sélectionné sera automatiquement associé à votre dossier de candidature après connexion.
             </span>
           </div>
         )}
