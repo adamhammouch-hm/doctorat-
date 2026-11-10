@@ -144,16 +144,36 @@ export const DataMigrationService = {
         const submissionDate = app.submissionDate ? toISOStringSafe(app.submissionDate).slice(0, 10) : new Date().toISOString().slice(0, 10);
         const decisionDate = app.decisionDate ? toISOStringSafe(app.decisionDate).slice(0, 10) : undefined;
         const registrationDeadline = app.registrationDeadline ? toISOStringSafe(app.registrationDeadline) : undefined;
+        const candidateId = (app.id === 'app-2026-001' && !app.candidateId) ? 'user-test-cand' : app.candidateId;
 
         return {
           ...app,
+          candidateId,
           submissionDate,
           decisionDate,
           registrationDeadline,
         };
       });
 
-      localStorage.setItem(V5_KEYS.APPLICATIONS, JSON.stringify(updated));
+      // Deduplicate drafts during migration: preserve official candidatures and at most 1 draft per (candidateId, topicId)
+      const seenOfficial = new Set<string>();
+      const seenDrafts = new Set<string>();
+      for (const a of updated) {
+        if (!a.isDraft && a.status !== 'draft') {
+          if (a.candidateId) seenOfficial.add(`${a.candidateId}_${a.topicId}`);
+        }
+      }
+      const deduplicated = updated.filter((a) => {
+        if (!a.isDraft && a.status !== 'draft') return true;
+        if (!a.candidateId) return false;
+        const key = `${a.candidateId}_${a.topicId}`;
+        if (seenOfficial.has(key)) return false; // discard drafts for already submitted/official topics
+        if (seenDrafts.has(key)) return false;
+        seenDrafts.add(key);
+        return true;
+      });
+
+      localStorage.setItem(V5_KEYS.APPLICATIONS, JSON.stringify(deduplicated));
     } catch (e) {
       console.warn('Failed to migrate applications', e);
       throw e;

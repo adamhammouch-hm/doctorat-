@@ -830,6 +830,7 @@ export const DEMO_APPLICATIONS: CandidateApplication[] = [
     topicId: 'usmba-topic-2026-001',
     topicCode: 'FST-LISIA-26-01',
     topicTitle: 'Arabic OCR using AI: Deep Learning Architectures for Historical Manuscript Digitization',
+    candidateId: 'user-test-cand',
     candidateName: 'Youssef El Amrani',
     candidateEmail: 'candidat.test@usmba.ma',
     candidatePhone: '+212 661 234 567',
@@ -1050,17 +1051,83 @@ export const ApplicationService = {
     }
   },
 
+  /**
+   * Strict deduplication and integrity check for applications:
+   * 1. Preserves all official applications (!isDraft && status !== 'draft'), including cancelled/withdrawn/admitted.
+   * 2. Binds app-2026-001 to user-test-cand if candidateId is absent.
+   * 3. For drafts: guarantees AT MOST ONE draft per (candidateId, topicId, session).
+   * 4. If an official application already exists for (candidateId, topicId, session), removes any phantom drafts for that topic.
+   * 5. Removes unowned drafts (missing candidateId).
+   */
+  deduplicateApplications(apps: CandidateApplication[]): CandidateApplication[] {
+    const deletedDraftIds = this.getDeletedDraftIds();
+    const result: CandidateApplication[] = [];
+    const seenDraftKeys = new Set<string>();
+    const seenOfficialKeys = new Set<string>();
+    const seenAppIds = new Set<string>();
+
+    // 1. Pass 1: Official applications (preserve all real applications, decisions and statuses)
+    for (const app of apps) {
+      if (!app || app.id === 'app-2026-draft-01' || deletedDraftIds.has(app.id)) {
+        continue;
+      }
+      if (app.id === 'app-2026-001' && !app.candidateId) {
+        app.candidateId = 'user-test-cand';
+      }
+
+      const isDraft = app.isDraft || app.status === 'draft';
+      if (!isDraft) {
+        if (!seenAppIds.has(app.id)) {
+          seenAppIds.add(app.id);
+          const cid = (app.candidateId || '').trim();
+          const session = app.academicYear || ThesisTopicService.getTopics().find((t) => t.id === app.topicId)?.academicYear || getCurrentAcademicYear();
+          if (cid) {
+            seenOfficialKeys.add(`${cid.toLowerCase()}_${app.topicId}_${session}`);
+          }
+          result.push(app);
+        }
+      }
+    }
+
+    // 2. Pass 2: Drafts (strictly 1 draft per candidate + topic + session, only if no official app exists)
+    for (const app of apps) {
+      if (!app || app.id === 'app-2026-draft-01' || deletedDraftIds.has(app.id)) {
+        continue;
+      }
+      const isDraft = app.isDraft || app.status === 'draft';
+      if (isDraft) {
+        if (!app.candidateId) continue; // Unowned drafts are ignored
+        const cid = app.candidateId.trim().toLowerCase();
+        const session = app.academicYear || ThesisTopicService.getTopics().find((t) => t.id === app.topicId)?.academicYear || getCurrentAcademicYear();
+        const key = `${cid}_${app.topicId}_${session}`;
+
+        // If an official application exists for this topic in this session, discard duplicate/phantom drafts
+        if (seenOfficialKeys.has(key)) {
+          continue;
+        }
+
+        if (!seenDraftKeys.has(key) && !seenAppIds.has(app.id)) {
+          seenDraftKeys.add(key);
+          seenAppIds.add(app.id);
+          result.push(app);
+        }
+      }
+    }
+
+    return result;
+  },
+
   getApplications(): CandidateApplication[] {
     try {
       const raw = localStorage.getItem(APPLICATIONS_STORAGE_KEY);
-      const deletedIds = this.getDeletedDraftIds();
       if (raw !== null) {
         const parsed: CandidateApplication[] = JSON.parse(raw);
-        const filtered = parsed.filter((app) => !deletedIds.has(app.id) && app.id !== 'app-2026-draft-01');
-        if (filtered.length !== parsed.length) {
-          this.saveApplications(filtered);
+        if (!Array.isArray(parsed)) return [];
+        const deduplicated = this.deduplicateApplications(parsed);
+        if (deduplicated.length !== parsed.length) {
+          this.saveApplications(deduplicated);
         }
-        return filtered;
+        return deduplicated;
       }
       return [];
     } catch {
@@ -1529,23 +1596,85 @@ export const ApplicationService = {
   },
 
   /**
+   * Look up existing draft for a candidate, topic, and academic session
+   */
+  getDraftForCandidateAndTopic(candidateId: string, topicId: string, sessionYear?: string): CandidateApplication | null {
+    if (!candidateId || !topicId) return null;
+    const cid = candidateId.trim().toLowerCase();
+    const apps = this.getApplications();
+    const session = sessionYear || getCurrentAcademicYear();
+    return apps.find((a) =>
+      (a.isDraft || a.status === 'draft') &&
+      Boolean(a.candidateId && a.candidateId.trim().toLowerCase() === cid) &&
+      a.topicId === topicId &&
+      (a.academicYear || session) === session
+    ) || null;
+  },
+
+  /**
    * Save or update draft application
+   * Guarantees at most ONE draft per candidate, topic, and session.
+   * If an official submission exists for this topic and session, draft creation is blocked.
    */
   saveDraft(draft: CandidateApplication): void {
+    if (!draft || !draft.candidateId) return;
+    const cid = draft.candidateId.trim();
+    const session = draft.academicYear || getCurrentAcademicYear();
+
     const apps = this.getApplications();
-    const index = apps.findIndex((a) => a.id === draft.id);
+
+    // 1. Guard: If an official application already exists for this candidate and topic, do not create a draft
+    const hasOfficial = apps.some((a) =>
+      (!a.isDraft && a.status !== 'draft') &&
+      Boolean(a.candidateId && a.candidateId.trim().toLowerCase() === cid.toLowerCase()) &&
+      a.topicId === draft.topicId &&
+      (a.academicYear || session) === session
+    );
+    if (hasOfficial) {
+      console.warn('Cannot create draft: an official application already exists for this topic.');
+      return;
+    }
+
+    // 2. Check if a draft already exists for this exact id OR for this candidate + topic + session
+    let index = apps.findIndex((a) => a.id === draft.id);
+    if (index === -1) {
+      index = apps.findIndex((a) =>
+        (a.isDraft || a.status === 'draft') &&
+        Boolean(a.candidateId && a.candidateId.trim().toLowerCase() === cid.toLowerCase()) &&
+        a.topicId === draft.topicId &&
+        (a.academicYear || session) === session
+      );
+      if (index >= 0) {
+        // Reuse canonical existing draft id!
+        draft.id = apps[index].id;
+      }
+    }
+
     if (index >= 0) {
       const existing = apps[index];
-      // Guard: do not allow overwriting an application belonging to another candidate
-      if (existing.candidateId && draft.candidateId && existing.candidateId.trim() !== draft.candidateId.trim()) {
+      if (existing.candidateId && existing.candidateId.trim().toLowerCase() !== cid.toLowerCase()) {
         console.warn('Unauthorized attempt to overwrite draft belonging to another candidate');
         return;
       }
-      apps[index] = draft;
+      apps[index] = {
+        ...existing,
+        ...draft,
+        id: existing.id,
+        isDraft: true,
+        status: 'draft' as const,
+        academicYear: session,
+      };
     } else {
-      apps.unshift(draft);
+      apps.unshift({
+        ...draft,
+        isDraft: true,
+        status: 'draft' as const,
+        academicYear: session,
+      });
     }
-    this.saveApplications(apps);
+
+    const deduplicated = this.deduplicateApplications(apps);
+    this.saveApplications(deduplicated);
 
     try {
       AuditLogService.log({
@@ -1617,7 +1746,8 @@ export const ApplicationService = {
     } else {
       apps.unshift(finalApp);
     }
-    this.saveApplications(apps);
+    const deduplicated = this.deduplicateApplications(apps);
+    this.saveApplications(deduplicated);
 
     try {
       AuditLogService.log({

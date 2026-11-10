@@ -94,6 +94,21 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
   // Honor Declaration checkbox (Step 5)
   const [honorCertified, setHonorCertified] = useState(false);
 
+  // Stable Draft ID resolution:
+  // 1. If existingApplication has an id, reuse it.
+  // 2. Otherwise look up if an existing draft exists in storage for this candidate and topic.
+  // 3. Otherwise generate a stable deterministic draft id tied to (user.id, topic.id).
+  const [draftId, setDraftId] = useState<string>(() => {
+    if (existingApplication?.id) return existingApplication.id;
+    const existing = ApplicationService.getDraftForCandidateAndTopic(user.id, topic.id, topic.academicYear);
+    if (existing?.id) return existing.id;
+    return `app-draft-${user.id.replace(/[^a-zA-Z0-9]/g, '').slice(-8)}-${topic.id.replace(/[^a-zA-Z0-9]/g, '').slice(-8)}`;
+  });
+
+  // Track voluntary candidate modification: opening modal without edits does NOT create a draft
+  const isDirtyRef = useRef<boolean>(Boolean(existingApplication && (existingApplication.isDraft || existingApplication.status === 'draft')));
+  const isInitialMountRef = useRef<boolean>(true);
+
   // Auto-save state
   const [lastAutoSave, setLastAutoSave] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -111,14 +126,20 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
     })
   );
 
+  const isOfficialExisting = Boolean(
+    existingApplication && !existingApplication.isDraft && existingApplication.status !== 'draft'
+  );
+
   const isEditingCurrentApp = Boolean(
+    !isOfficialExisting &&
     existingApplication &&
     (!existingApplication.candidateId || existingApplication.candidateId === user.id) &&
     (existingApplication.id === eligibility.existingDraftId ||
      existingApplication.topicId === topic.id)
   );
 
-  const isBlocked = (!isEditingCurrentApp && !eligibility.canApply) ||
+  const isBlocked = isOfficialExisting ||
+    (!isEditingCurrentApp && !eligibility.canApply) ||
     Boolean(existingApplication && existingApplication.candidateId && existingApplication.candidateId !== user.id);
 
   const handleDeleteOldDraftAndContinue = () => {
@@ -130,9 +151,14 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
 
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-save debounced whenever fields change
+  // Auto-save debounced whenever fields change AFTER initial mount
   useEffect(() => {
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      return;
+    }
     if (!isOpen || isBlocked) return;
+    isDirtyRef.current = true;
 
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
@@ -201,14 +227,14 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
   }
 
   const saveDraftSilently = () => {
-    if (isBlocked) return;
+    if (isBlocked || !isDirtyRef.current) return;
     if (existingApplication && existingApplication.candidateId && existingApplication.candidateId !== user.id) {
       return;
     }
     ProfileService.saveProfile(profile);
 
     const draftApp: CandidateApplication = {
-      id: existingApplication?.id || `app-${Date.now().toString().slice(-6)}`,
+      id: draftId,
       topicId: topic.id,
       topicCode: topic.code,
       topicTitle: topic.title,
@@ -226,7 +252,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
       pfeTitle: profile.pfeTitle || '',
       statementOfPurpose,
       scientificAlignment,
-      submissionDate: new Date().toISOString().split('T')[0],
+      submissionDate: existingApplication?.submissionDate || new Date().toISOString().split('T')[0],
       status: 'draft',
       isDraft: true,
       draftStep: currentStep,
@@ -361,7 +387,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
       ProfileService.saveProfile(profile);
 
       const finalApp: CandidateApplication = {
-        id: existingApplication?.id || `app-${Date.now().toString().slice(-6)}`,
+        id: draftId,
         topicId: topic.id,
         topicCode: topic.code,
         topicTitle: topic.title,
