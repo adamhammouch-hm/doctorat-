@@ -246,11 +246,15 @@ export default function App() {
       return;
     }
 
-    // Check 3 applications limit
-    const submittedCount = candidateSubmittedApps.length;
-    if (!existingAppForTopic && submittedCount >= 3) {
+    // Check 3 applications limit for the target topic's session
+    const targetSession = targetTopic.academicYear || '2026/2027';
+    const submittedInSession = candidateSubmittedApps.filter((a) => {
+      const aSession = a.academicYear || topics.find((t) => t.id === a.topicId)?.academicYear || '2026/2027';
+      return aSession === targetSession;
+    });
+    if (!existingAppForTopic && submittedInSession.length >= 3) {
       showToast(
-        'Vous avez atteint le plafond réglementaire de 3 candidatures officielles par session doctorale.',
+        `Vous avez atteint le plafond réglementaire de 3 candidatures officielles pour la session doctorale ${targetSession}.`,
         'warning'
       );
       setActiveView('workspace');
@@ -610,7 +614,12 @@ export default function App() {
                     const isThisTopic = Boolean(appForTopic);
                     const isSubmittedForTopic = Boolean(appForTopic && !appForTopic.isDraft && appForTopic.status !== 'draft');
                     const isDraftForTopic = Boolean(appForTopic?.isDraft || appForTopic?.status === 'draft');
-                    const reachedMax = candidateSubmittedApps.length >= 3;
+                    const topicSession = topic.academicYear || '2026/2027';
+                    const submittedForSession = candidateSubmittedApps.filter((a) => {
+                      const aSession = a.academicYear || topics.find((t) => t.id === a.topicId)?.academicYear || '2026/2027';
+                      return aSession === topicSession;
+                    });
+                    const reachedMax = submittedForSession.length >= 3;
 
                     return (
                       <TopicCard
@@ -637,7 +646,12 @@ export default function App() {
         const appForDetail = detailTopic ? candidateApplications.find((a) => a.topicId === detailTopic.id) : null;
         const isSubmittedForDetail = Boolean(appForDetail && !appForDetail.isDraft && appForDetail.status !== 'draft');
         const isDraftForDetail = Boolean(appForDetail?.isDraft || appForDetail?.status === 'draft');
-        const reachedMaxDetail = candidateSubmittedApps.length >= 3;
+        const detailSession = detailTopic?.academicYear || '2026/2027';
+        const submittedForDetailSession = candidateSubmittedApps.filter((a) => {
+          const aSession = a.academicYear || topics.find((t) => t.id === a.topicId)?.academicYear || '2026/2027';
+          return aSession === detailSession;
+        });
+        const reachedMaxDetail = submittedForDetailSession.length >= 3;
 
         return (
           <TopicDetailModal

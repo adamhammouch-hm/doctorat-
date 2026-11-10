@@ -20,6 +20,33 @@ import { AuditLogService } from './auditLogService';
 const STORAGE_ACCOUNTS_KEY = V5_KEYS.ACCOUNTS;
 const STORAGE_SESSION_KEY = V5_KEYS.SESSION;
 
+/**
+ * ARCHITECTURAL SECURITY NOTICE:
+ * This authentication system operates locally within the user's browser (IndexedDB + localStorage)
+ * in accordance with the project specification (zero external cloud backend, zero paid dependencies).
+ * In an enterprise production deployment at USMBA, authentication would be delegated to the institutional
+ * identity provider via OAuth2 / OIDC / SAML (e.g. CAS USMBA / Azure AD / Shibboleth) with httpOnly secure cookies.
+ * 
+ * Local security protections implemented:
+ * - Client-side SHA-256 password hashing with seamless legacy backward compatibility.
+ * - Strict non-escalation: public self-registration is strictly locked to 'candidate' role.
+ * - RBAC permission checks on every workspace route and action.
+ * - Audit trail logging of every authentication event and role transition.
+ */
+export async function hashPasswordSafe(password: string): Promise<string> {
+  try {
+    if (typeof crypto !== 'undefined' && crypto.subtle) {
+      const msgUint8 = new TextEncoder().encode(password);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    }
+  } catch {
+    // fallback if Web Cryptography API is unavailable
+  }
+  return password;
+}
+
 // Default initial accounts including the 3 required test accounts
 export const SEEDED_ACCOUNTS: AuthAccount[] = [
   // 1. Official Test Candidate
@@ -198,12 +225,13 @@ export const AuthService = {
       return { success: false, error: 'Un compte existe déjà avec cette adresse e-mail.' };
     }
 
+    const hashedPassword = await hashPasswordSafe(params.password);
     const newAccount: AuthAccount = {
       id: `user-${Date.now()}`,
       email: emailNormalized,
       name: params.name.trim(),
       role: 'candidate', // FORCED: never allow client-side role escalation
-      passwordHash: params.password,
+      passwordHash: hashedPassword,
       createdAt: new Date().toISOString(),
       title: 'Candidat au Doctorat',
     };
@@ -241,11 +269,19 @@ export const AuthService = {
       };
     }
 
-    if (account.passwordHash !== params.password) {
+    const hashedPassword = await hashPasswordSafe(params.password);
+    const passwordMatches = (account.passwordHash === params.password) || (account.passwordHash === hashedPassword);
+
+    if (!passwordMatches) {
       return { 
         success: false, 
         error: 'Mot de passe incorrect. Veuillez vérifier votre saisie ou demander une réinitialisation.' 
       };
+    }
+
+    // Transparent non-destructive upgrade from legacy plaintext to SHA-256 hash
+    if (account.passwordHash === params.password && hashedPassword !== params.password) {
+      account.passwordHash = hashedPassword;
     }
 
     if (account.isActive === false) {
@@ -374,7 +410,8 @@ export const AuthService = {
       };
     }
 
-    accounts[accountIndex].passwordHash = params.newPassword;
+    const hashedPassword = await hashPasswordSafe(params.newPassword);
+    accounts[accountIndex].passwordHash = hashedPassword;
     delete accounts[accountIndex].resetToken;
     delete accounts[accountIndex].resetTokenExpiry;
     this.saveAccounts(accounts);

@@ -327,18 +327,21 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
       storedSuccessfully = true;
     } catch (err) {
       console.warn('Failed to save document to IndexedDB:', err);
+      setErrorMessage("Échec de l'enregistrement du fichier dans le stockage local IndexedDB. Veuillez vérifier l'espace disponible et réessayer.");
+      setIsProcessing(false);
+      return;
     }
 
     const doc: ApplicationDocument = {
       id: docId,
       name: documentName,
       category: documentCategory,
-      fileName: `${documentCategory.toUpperCase()}_Candidat_USMBA.${isPdf ? 'pdf' : 'pdf'}`,
+      fileName: `${documentCategory.toUpperCase()}_Candidat_USMBA.${isPdf ? 'pdf' : 'jpg'}`,
       fileSize: displaySize,
       fileType: isPdf ? 'pdf' : pages.length > 1 ? 'multi_image' : 'image',
       status: 'valid',
       pages,
-      storageRef: docId,
+      storageRef: storedSuccessfully ? docId : undefined,
       isStoredInIndexedDb: storedSuccessfully,
       uploadedAt: new Date().toLocaleDateString('fr-FR'),
     };

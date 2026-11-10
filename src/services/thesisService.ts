@@ -1273,6 +1273,7 @@ export const ApplicationService = {
     cne?: string;
     targetTopicId?: string;
     currentApplicationId?: string;
+    academicYear?: string;
   }): {
     canApply: boolean;
     reason?: string;
@@ -1295,6 +1296,10 @@ export const ApplicationService = {
       return { canApply: true, submittedCount: 0 };
     }
 
+    // Determine target session (defaults to target topic's academic year or current year)
+    const targetTopic = targetTopicId ? ThesisTopicService.getTopics().find((t) => t.id === targetTopicId) : null;
+    const targetSession = candidate.academicYear || targetTopic?.academicYear || getCurrentAcademicYear();
+
     const allApps = this.getApplications();
     const myApps = allApps.filter((app) => {
       if (currentAppId && app.id === currentAppId) return false;
@@ -1310,12 +1315,23 @@ export const ApplicationService = {
       );
     });
 
-    const submittedApps = myApps.filter((a) => !a.isDraft && a.status !== 'draft');
+    // Only count submitted applications for THIS academic session (previous sessions do NOT count towards quota)
+    const submittedApps = myApps.filter((a) => {
+      if (a.isDraft || a.status === 'draft') return false;
+      const appSession = a.academicYear || ThesisTopicService.getTopics().find((t) => t.id === a.topicId)?.academicYear || getCurrentAcademicYear();
+      return appSession === targetSession;
+    });
+
     const MAX_APPLICATIONS = CartService.getMaxLimit(); // Default 3
 
-    // Check if already applied to this specific topic
+    // Check if already applied to this specific topic in this session
     if (targetTopicId) {
-      const appForSameTopic = myApps.find((a) => a.topicId === targetTopicId);
+      const appForSameTopic = myApps.find((a) => {
+        if (a.topicId !== targetTopicId) return false;
+        const appSession = a.academicYear || ThesisTopicService.getTopics().find((t) => t.id === a.topicId)?.academicYear || getCurrentAcademicYear();
+        return appSession === targetSession;
+      });
+
       if (appForSameTopic) {
         if (!appForSameTopic.isDraft && appForSameTopic.status !== 'draft') {
           return {
@@ -1324,7 +1340,7 @@ export const ApplicationService = {
             hasSubmitted: true,
             submittedCount: submittedApps.length,
             existingApplication: appForSameTopic,
-            reason: `Vous avez déjà soumis une candidature officielle pour le sujet « ${appForSameTopic.topicTitle} » (${appForSameTopic.topicCode}). La réglementation interdit de déposer deux candidatures pour le même sujet lors de la même session.`,
+            reason: `Vous avez déjà soumis une candidature officielle pour le sujet « ${appForSameTopic.topicTitle} » (${appForSameTopic.topicCode}) pour la session ${targetSession}. La réglementation interdit de déposer deux candidatures pour le même sujet lors de la même session.`,
           };
         } else {
           return {
@@ -1338,14 +1354,14 @@ export const ApplicationService = {
       }
     }
 
-    // Check if candidate reached maximum of 3 official submissions
+    // Check if candidate reached maximum of 3 official submissions for this session
     if (submittedApps.length >= MAX_APPLICATIONS) {
       return {
         canApply: false,
         maxReached: true,
         hasSubmitted: true,
         submittedCount: submittedApps.length,
-        reason: `Vous avez atteint le plafond réglementaire de ${MAX_APPLICATIONS} candidatures officielles pour cette session doctorale (${submittedApps.map((a) => a.topicCode).join(', ')}). Une quatrième candidature ne peut pas être déposée.`,
+        reason: `Vous avez atteint le plafond réglementaire de ${MAX_APPLICATIONS} candidatures officielles pour la session doctorale ${targetSession} (${submittedApps.map((a) => a.topicCode).join(', ')}). Une quatrième candidature ne peut pas être déposée.`,
       };
     }
 
@@ -1581,9 +1597,18 @@ export const ApplicationService = {
   submitApplication(app: CandidateApplication): { success: boolean; error?: string } {
     const allApps = this.getApplications();
     const email = (app.candidateEmail || '').toLowerCase().trim();
+    
+    // Resolve session for target application
+    const targetTopic = ThesisTopicService.getTopics().find((t) => t.id === app.topicId);
+    const sessionYear = app.academicYear || targetTopic?.academicYear || getCurrentAcademicYear();
+
     const otherSubmitted = allApps.filter((a) => {
       if (a.id === app.id) return false;
       if (a.isDraft || a.status === 'draft') return false;
+      // Filter strictly by session
+      const aSession = a.academicYear || ThesisTopicService.getTopics().find((t) => t.id === a.topicId)?.academicYear || getCurrentAcademicYear();
+      if (aSession !== sessionYear) return false; // Prior sessions do NOT count towards current session limit
+
       const appEmail = (a.candidateEmail || '').toLowerCase().trim();
       const appCin = (a.cin || '').toLowerCase().trim();
       const appCne = (a.cne || '').toLowerCase().trim();
@@ -1598,7 +1623,7 @@ export const ApplicationService = {
     if (otherSubmitted.length >= MAX_APPLICATIONS) {
       return {
         success: false,
-        error: `Vous avez atteint le plafond réglementaire de ${MAX_APPLICATIONS} candidatures officielles par session doctorale.`,
+        error: `Vous avez atteint le plafond réglementaire de ${MAX_APPLICATIONS} candidatures officielles pour la session doctorale ${sessionYear}.`,
       };
     }
 
@@ -1606,13 +1631,18 @@ export const ApplicationService = {
     if (sameTopic) {
       return {
         success: false,
-        error: `Vous avez déjà soumis une candidature officielle pour ce sujet (${sameTopic.topicCode}).`,
+        error: `Vous avez déjà soumis une candidature officielle pour ce sujet (${sameTopic.topicCode}) pour la session ${sessionYear}.`,
       };
     }
 
     const apps = this.getApplications();
     const index = apps.findIndex((a) => a.id === app.id);
-    const finalApp = { ...app, isDraft: false, status: 'pending_review' as const };
+    const finalApp: CandidateApplication = { 
+      ...app, 
+      academicYear: sessionYear, 
+      isDraft: false, 
+      status: 'pending_review' as const 
+    };
     if (index >= 0) {
       apps[index] = finalApp;
     } else {

@@ -28,45 +28,10 @@ import {
   Layers, 
   Building2, 
   Calendar, 
-  ChevronDown, 
-  ChevronUp, 
   BookOpen, 
   ShieldCheck,
-  Search,
-  Zap
+  Search
 } from 'lucide-react';
-
-// Demo test accounts for 1-click development login
-const TEST_ACCOUNTS = [
-  {
-    email: 'candidat.test@usmba.ma',
-    password: 'Doctorat2025!',
-    label: 'Candidat',
-    role: 'candidate',
-    color: 'emerald',
-  },
-  {
-    email: 'directeur.these.test@usmba.ma',
-    password: 'Doctorat2025!',
-    label: 'Dir. Thèse',
-    role: 'thesis_director',
-    color: 'blue',
-  },
-  {
-    email: 'directeur.structure.test@usmba.ma',
-    password: 'Doctorat2025!',
-    label: 'Dir. Structure',
-    role: 'structure_director',
-    color: 'purple',
-  },
-  {
-    email: 'admin.test@usmba.ma',
-    password: 'Doctorat2025!',
-    label: 'Administrateur',
-    role: 'admin',
-    color: 'slate',
-  },
-];
 
 interface PortalLandingProps {
   language: Language;
@@ -79,7 +44,6 @@ export const PortalLanding: React.FC<PortalLandingProps> = ({
 }) => {
   const isRtl = language === 'ar';
   const [viewMode, setViewMode] = useState<'login' | 'register' | 'forgot'>('login');
-  const [showTestAccounts, setShowTestAccounts] = useState(false);
 
   // Form states - empty credentials without pre-filling
   const [email, setEmail] = useState('');
@@ -93,25 +57,6 @@ export const PortalLanding: React.FC<PortalLandingProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  // 1-click test account quick-login
-  const handleQuickLogin = async (testEmail: string, testPassword: string) => {
-    setErrorMessage(null);
-    setSuccessMessage(null);
-    setIsLoading(true);
-    try {
-      const res = await AuthService.login({ email: testEmail, password: testPassword });
-      if (res.success && res.user) {
-        onLoginSuccess(res.user);
-      } else {
-        setErrorMessage(res.error || 'Connexion test échouée.');
-      }
-    } catch {
-      setErrorMessage('Erreur lors de la connexion test.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -382,49 +327,6 @@ export const PortalLanding: React.FC<PortalLandingProps> = ({
                   >
                     Créer un compte
                   </button>
-                </div>
-
-                {/* Quick Test Login - collapsible */}
-                <div className="pt-1 border-t border-dashed border-slate-200">
-                  <button
-                    type="button"
-                    onClick={() => setShowTestAccounts((v) => !v)}
-                    className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-[11px] text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
-                  >
-                    <span className="flex items-center gap-1.5 font-semibold">
-                      <Zap className="w-3 h-3 text-amber-500" />
-                      Accès rapide – Comptes de démonstration
-                    </span>
-                    {showTestAccounts ? (
-                      <ChevronUp className="w-3.5 h-3.5" />
-                    ) : (
-                      <ChevronDown className="w-3.5 h-3.5" />
-                    )}
-                  </button>
-                  {showTestAccounts && (
-                    <div className="mt-2 grid grid-cols-2 gap-1.5">
-                      {TEST_ACCOUNTS.map((acc) => (
-                        <button
-                          key={acc.email}
-                          type="button"
-                          disabled={isLoading}
-                          onClick={() => handleQuickLogin(acc.email, acc.password)}
-                          className={`px-2.5 py-2 rounded-lg text-[11px] font-semibold text-left border transition-colors cursor-pointer disabled:opacity-50 ${
-                            acc.color === 'emerald'
-                              ? 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100'
-                              : acc.color === 'blue'
-                              ? 'bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100'
-                              : acc.color === 'purple'
-                              ? 'bg-purple-50 border-purple-200 text-purple-800 hover:bg-purple-100'
-                              : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
-                          }`}
-                        >
-                          <div className="font-bold">{acc.label}</div>
-                          <div className="truncate opacity-70 text-[10px] mt-0.5">{acc.email}</div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </form>
             )}
