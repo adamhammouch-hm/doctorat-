@@ -17,7 +17,7 @@
  */
 
 import { CandidateApplication, ThesisTopic, WaitlistPromotionProposal } from '../types';
-import { ApplicationService } from './thesisService';
+import { ApplicationService, ThesisTopicService } from './thesisService';
 import { NotificationService } from './notificationService';
 import { AdminConfigService } from './adminConfigService';
 import { V5_KEYS } from './dataMigrationService';
@@ -35,7 +35,24 @@ function getStructureDirectorEmail(): string {
   } catch {
     // ignore
   }
-  return 'directeur.structure@usmba.ma';
+  return 'directeur.structure.test@usmba.ma';
+}
+
+/**
+ * Resolves the academic session year of an application with 100% certainty:
+ * 1. From the application's own academicYear field if present.
+ * 2. Or from the linked ThesisTopic's academicYear.
+ * Returns null if the session cannot be determined with certainty.
+ */
+function resolveSessionYear(app: CandidateApplication, topics: ThesisTopic[]): string | null {
+  if (app.academicYear && typeof app.academicYear === 'string' && app.academicYear.trim()) {
+    return app.academicYear.trim();
+  }
+  const targetTopic = topics.find((t) => t.id === app.topicId);
+  if (targetTopic?.academicYear && typeof targetTopic.academicYear === 'string' && targetTopic.academicYear.trim()) {
+    return targetTopic.academicYear.trim();
+  }
+  return null;
 }
 
 export const AdmissionWaitlistService = {
@@ -353,7 +370,9 @@ export const AdmissionWaitlistService = {
       note: `Le candidat a validé son engagement et confirmé son inscription dans les délais impartis sur le sujet [${app.topicCode}] ${app.topicTitle}.`,
     });
 
-    // Auto-withdraw all OTHER applications of the same candidate for the same academic session
+    // Auto-withdraw all OTHER applications of the same candidate strictly for the SAME academic session
+    const allTopics = ThesisTopicService.getTopics();
+    const confirmedSession = resolveSessionYear(app, allTopics);
     const withdrawnTopicCodes: string[] = [];
     const topicsToCheckWaitlist: string[] = [];
 
@@ -364,15 +383,24 @@ export const AdmissionWaitlistService = {
         other.candidateEmail.toLowerCase().trim() === app.candidateEmail.toLowerCase().trim() ||
         (app.candidateId && other.candidateId === app.candidateId);
       if (!isSameCandidate) return;
-      // Same academic session check (avoid affecting other sessions)
-      if (other.academicYear && app.academicYear && other.academicYear !== app.academicYear) return;
-      // Don't touch already-terminal statuses
+
+      // Don't touch already-terminal statuses or drafts
       if (
         other.status === 'registration_confirmed' ||
         other.status === 'withdrawn' ||
         other.status === 'draft' ||
         other.isDraft
       ) return;
+
+      // Strict safety rule: if confirmed application's session cannot be resolved with certainty, DO NOT modify other dossiers!
+      if (!confirmedSession) return;
+
+      // Strict safety rule: if other application's session cannot be resolved with certainty, DO NOT modify it!
+      const otherSession = resolveSessionYear(other, allTopics);
+      if (!otherSession) return;
+
+      // Prior or subsequent sessions must NEVER be modified!
+      if (otherSession !== confirmedSession) return;
 
       const previousStatus = other.status;
       other.status = 'withdrawn';
@@ -381,7 +409,7 @@ export const AdmissionWaitlistService = {
         date: formattedDate,
         action: 'Désistement automatique',
         author: "Système — Confirmation d'inscription",
-        note: `Désistement automatique suite à la confirmation de l'inscription de ${candidateName} sur le sujet [${app.topicCode}] ${app.topicTitle}. Dossier précédent : statut "${previousStatus}".`,
+        note: `Désistement automatique suite à la confirmation de l'inscription de ${candidateName} sur le sujet [${app.topicCode}] ${app.topicTitle} (Session ${confirmedSession}). Dossier précédent : statut "${previousStatus}".`,
       });
 
       withdrawnTopicCodes.push(other.topicCode);

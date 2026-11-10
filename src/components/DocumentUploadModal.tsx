@@ -256,7 +256,10 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
             const ctx = canvas.getContext('2d');
             if (ctx) {
               ctx.drawImage(img, 0, 0, w, h);
-              const compressed = canvas.toDataURL('image/jpeg', 0.82);
+              const outputMime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+              const compressed = outputMime === 'image/png' 
+                ? canvas.toDataURL('image/png') 
+                : canvas.toDataURL('image/jpeg', 0.82);
               setPages((prev) => [...prev, compressed]);
               setSelectedPageIndex(pages.length);
             }
@@ -310,7 +313,30 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
 
     setIsProcessing(true);
     const docId = existingDocument?.id || `doc-${Date.now()}`;
-    const isPdf = pages[0].startsWith('data:application/pdf');
+    const firstPage = pages[0] || '';
+    const isPdf = firstPage.startsWith('data:application/pdf');
+    const isPng = firstPage.startsWith('data:image/png');
+    const isWebp = firstPage.startsWith('data:image/webp');
+
+    let mimeType = 'image/jpeg';
+    let fileExt = 'jpg';
+    let fileType: ApplicationDocument['fileType'] = pages.length > 1 ? 'multi_image' : 'image';
+
+    if (isPdf) {
+      mimeType = 'application/pdf';
+      fileExt = 'pdf';
+      fileType = 'pdf';
+    } else if (isPng) {
+      mimeType = 'image/png';
+      fileExt = 'png';
+    } else if (isWebp) {
+      mimeType = 'image/webp';
+      fileExt = 'webp';
+    } else {
+      mimeType = 'image/jpeg';
+      fileExt = 'jpg';
+    }
+
     const estimatedSizeKo = Math.round((pages.reduce((acc, p) => acc + p.length, 0) * 0.75) / 1024);
     const displaySize = estimatedSizeKo > 1024 
       ? `${(estimatedSizeKo / 1024).toFixed(1)} Mo` 
@@ -321,7 +347,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
       await LocalFileStorage.saveDocumentPages(docId, pages, {
         name: documentName,
         category: documentCategory,
-        type: isPdf ? 'application/pdf' : 'image/jpeg',
+        type: mimeType,
         size: estimatedSizeKo * 1024,
       });
       storedSuccessfully = true;
@@ -336,9 +362,9 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
       id: docId,
       name: documentName,
       category: documentCategory,
-      fileName: `${documentCategory.toUpperCase()}_Candidat_USMBA.${isPdf ? 'pdf' : 'jpg'}`,
+      fileName: `${documentCategory.toUpperCase()}_Candidat_USMBA.${fileExt}`,
       fileSize: displaySize,
-      fileType: isPdf ? 'pdf' : pages.length > 1 ? 'multi_image' : 'image',
+      fileType,
       status: 'valid',
       pages,
       storageRef: storedSuccessfully ? docId : undefined,

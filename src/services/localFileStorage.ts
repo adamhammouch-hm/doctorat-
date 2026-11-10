@@ -128,8 +128,10 @@ class LocalFileStorageService {
       const store = tx.objectStore(STORE_NAME);
       const req = store.put({ id, ...record });
 
-      req.onsuccess = () => resolve(docMeta);
-      req.onerror = () => reject(req.error || new Error('Erreur lors de l’enregistrement local du document'));
+      req.onerror = () => reject(req.error || new Error('Erreur lors de l’écriture du document'));
+      tx.oncomplete = () => resolve(docMeta);
+      tx.onerror = () => reject(tx.error || req.error || new Error('Échec de la transaction IndexedDB lors de l’enregistrement'));
+      tx.onabort = () => reject(tx.error || new Error('Transaction IndexedDB interrompue ou annulée'));
     });
   }
 
@@ -165,8 +167,10 @@ class LocalFileStorageService {
       const store = tx.objectStore(STORE_NAME);
       const req = store.put({ id, ...record });
 
-      req.onsuccess = () => resolve(docMeta);
-      req.onerror = () => reject(req.error || new Error('Erreur lors de l’enregistrement local du document'));
+      req.onerror = () => reject(req.error || new Error('Erreur lors de l’écriture du document'));
+      tx.oncomplete = () => resolve(docMeta);
+      tx.onerror = () => reject(tx.error || req.error || new Error('Échec de la transaction IndexedDB lors de l’enregistrement'));
+      tx.onabort = () => reject(tx.error || new Error('Transaction IndexedDB interrompue ou annulée'));
     });
   }
 
@@ -259,8 +263,10 @@ class LocalFileStorageService {
       const store = tx.objectStore(STORE_NAME);
       const req = store.delete(id);
 
-      req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error || new Error('Erreur lors de la suppression du document'));
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error || req.error || new Error('Échec de la transaction IndexedDB lors de la suppression'));
+      tx.onabort = () => reject(tx.error || new Error('Transaction de suppression IndexedDB interrompue'));
     });
   }
 
@@ -308,8 +314,10 @@ class LocalFileStorageService {
       const store = tx.objectStore(STORE_NAME);
       const req = store.clear();
 
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
+      req.onerror = () => reject(req.error || new Error('Erreur lors de la réinitialisation du store'));
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error || req.error || new Error('Échec de la transaction IndexedDB lors du vidage'));
+      tx.onabort = () => reject(tx.error || new Error('Transaction IndexedDB interrompue'));
     });
   }
 }

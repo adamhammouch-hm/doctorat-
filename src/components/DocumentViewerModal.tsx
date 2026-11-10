@@ -106,17 +106,29 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
   if (!isOpen || !doc) return null;
 
   const currentPage = pages[currentPageIndex] || null;
+  const isExplicitImage = Boolean(
+    currentPage && currentPage.startsWith('data:image/')
+  );
   const isPdf = Boolean(
-    doc.fileType === 'pdf' ||
-    doc.fileName.toLowerCase().endsWith('.pdf') ||
-    (currentPage && currentPage.startsWith('data:application/pdf'))
+    !isExplicitImage && (
+      (currentPage && currentPage.startsWith('data:application/pdf')) ||
+      doc.fileType === 'pdf' ||
+      doc.fileName.toLowerCase().endsWith('.pdf')
+    )
   );
 
   const handleDownload = () => {
     if (!currentPage) return;
     const a = window.document.createElement('a');
     a.href = currentPage;
-    a.download = doc.fileName || `${doc.category}.pdf`;
+    const ext = isPdf
+      ? 'pdf'
+      : currentPage.startsWith('data:image/png')
+      ? 'png'
+      : currentPage.startsWith('data:image/webp')
+      ? 'webp'
+      : 'jpg';
+    a.download = doc.fileName || `${doc.category}.${ext}`;
     window.document.body.appendChild(a);
     a.click();
     window.document.body.removeChild(a);
