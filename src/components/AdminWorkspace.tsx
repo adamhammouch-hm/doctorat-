@@ -38,11 +38,9 @@ import {
   Layers, 
   FileText, 
   Filter, 
-  Trash2,
   Clock,
   Database,
   Info,
-  Check,
   X,
   Eye,
   Sparkles
@@ -69,6 +67,8 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({
   const [accounts, setAccounts] = useState<AuthAccount[]>(() => AuthService.getAccounts());
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState<string>('all');
+  const [userStatusFilter, setUserStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
+  const [selectedAccountForView, setSelectedAccountForView] = useState<AuthAccount | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Modal create user
@@ -106,39 +106,7 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({
     setAuditLogs(AuditLogService.getLogs());
   };
 
-  // Toggle user active status
-  const handleToggleActive = (account: AuthAccount) => {
-    if (account.id === currentUser.id) {
-      showFeedback('Impossible de désactiver votre propre compte administrateur.');
-      return;
-    }
-    const res = AuthService.toggleAccountActive(account.id, currentUser);
-    if (res.success) {
-      refreshAccounts();
-      refreshLogs();
-      showFeedback(`Compte de ${account.name} ${res.newStatus ? 'activé' : 'désactivé'}.`);
-    } else {
-      showFeedback(res.error || 'Erreur lors de la modification du statut.');
-    }
-  };
-
-  // Change user role
-  const handleChangeRole = (account: AuthAccount, newRole: AppRole) => {
-    if (account.id === currentUser.id && newRole !== 'admin') {
-      showFeedback('Impossible de révoquer vos propres privilèges d’administrateur.');
-      return;
-    }
-    const res = AuthService.updateAccountRole(currentUser, account.id, newRole);
-    if (res.success) {
-      refreshAccounts();
-      refreshLogs();
-      showFeedback(`Rôle de ${account.name} mis à jour : ${newRole}.`);
-    } else {
-      showFeedback(res.error || 'Erreur lors de la mise à jour du rôle.');
-    }
-  };
-
-  // Create new account
+  // Create new account (Create privilege strictly preserved)
   const handleCreateUser = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUserData.name.trim() || !newUserData.email.trim() || !newUserData.password.trim()) {
@@ -178,34 +146,19 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({
     }
   };
 
-  // Delete account
-  const handleDeleteAccount = (account: AuthAccount) => {
-    if (account.id === currentUser.id) {
-      showFeedback('Impossible de supprimer votre propre compte administrateur.');
-      return;
-    }
-    if (window.confirm(`Confirmez-vous la suppression définitive du compte de ${account.name} (${account.email}) ?`)) {
-      const res = AuthService.deleteAccountByAdmin(account.id, currentUser);
-      if (res.success) {
-        refreshAccounts();
-        refreshLogs();
-        showFeedback(`Compte de ${account.name} supprimé avec succès.`);
-      } else {
-        showFeedback(res.error || 'Erreur lors de la suppression du compte.');
-      }
-    }
-  };
-
-  // Filter accounts
+  // Filter accounts (Read privilege: search & filters)
   const filteredAccounts = accounts.filter((acc) => {
     if (userRoleFilter !== 'all' && acc.role !== userRoleFilter) return false;
+    if (userStatusFilter === 'active' && acc.isActive === false) return false;
+    if (userStatusFilter === 'suspended' && acc.isActive !== false) return false;
     if (userSearchQuery.trim()) {
       const q = userSearchQuery.toLowerCase().trim();
       return (
         acc.name.toLowerCase().includes(q) ||
         acc.email.toLowerCase().includes(q) ||
         (acc.institution && acc.institution.toLowerCase().includes(q)) ||
-        (acc.laboratory && acc.laboratory.toLowerCase().includes(q))
+        (acc.laboratory && acc.laboratory.toLowerCase().includes(q)) ||
+        (acc.title && acc.title.toLowerCase().includes(q))
       );
     }
     return true;
@@ -352,33 +305,54 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({
         </button>
       </div>
 
-      {/* TAB 1: USERS */}
+      {/* TAB 1: USERS (READ & CREATE ONLY) */}
       {activeTab === 'users' && (
         <div className="space-y-4">
-          <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs">
             <div className="relative flex-1">
               <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
               <input
                 type="text"
                 value={userSearchQuery}
                 onChange={(e) => setUserSearchQuery(e.target.value)}
-                placeholder="Rechercher par nom, email, établissement..."
+                placeholder="Rechercher par nom, email, établissement, laboratoire..."
                 className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-purple-600 bg-slate-50/50"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <Filter className="w-3.5 h-3.5 text-slate-400" />
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <Filter className="w-3.5 h-3.5 text-slate-400" />
+                <select
+                  value={userRoleFilter}
+                  onChange={(e) => setUserRoleFilter(e.target.value)}
+                  className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-purple-600 cursor-pointer"
+                >
+                  <option value="all">Tous les rôles ({accounts.length})</option>
+                  <option value="candidate">Candidats</option>
+                  <option value="thesis_director">Directeurs de thèse</option>
+                  <option value="structure_director">Directeurs de structure</option>
+                  <option value="admin">Administrateurs</option>
+                </select>
+              </div>
+
               <select
-                value={userRoleFilter}
-                onChange={(e) => setUserRoleFilter(e.target.value)}
+                value={userStatusFilter}
+                onChange={(e) => setUserStatusFilter(e.target.value as 'all' | 'active' | 'suspended')}
                 className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 focus:outline-none focus:ring-1 focus:ring-purple-600 cursor-pointer"
               >
-                <option value="all">Tous les rôles ({accounts.length})</option>
-                <option value="candidate">Candidats</option>
-                <option value="thesis_director">Directeurs de thèse</option>
-                <option value="structure_director">Directeurs de structure</option>
-                <option value="admin">Administrateurs</option>
+                <option value="all">Tous les états</option>
+                <option value="active">Actifs uniquement</option>
+                <option value="suspended">Suspendus uniquement</option>
               </select>
+
+              <button
+                type="button"
+                onClick={() => setIsCreateUserOpen(true)}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-white bg-purple-800 hover:bg-purple-900 flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs whitespace-nowrap"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>Créer un compte</span>
+              </button>
             </div>
           </div>
 
@@ -387,11 +361,12 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-bold text-[10px] tracking-wider">
                   <tr>
-                    <th className="py-3 px-4">Utilisateur</th>
+                    <th className="py-3 px-4">Nom et Prénom</th>
+                    <th className="py-3 px-4">Adresse E-mail</th>
                     <th className="py-3 px-4">Rôle</th>
-                    <th className="py-3 px-4">Établissement / Labo</th>
-                    <th className="py-3 px-4">Statut</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
+                    <th className="py-3 px-4">Date de création</th>
+                    <th className="py-3 px-4">État du compte</th>
+                    <th className="py-3 px-4 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -399,14 +374,16 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({
                     <tr key={acc.id} className="hover:bg-slate-50/60 transition-colors">
                       <td className="py-3 px-4">
                         <div className="font-bold text-slate-900">{acc.name}</div>
-                        <div className="text-slate-500 font-mono text-[11px]">{acc.email}</div>
+                        {acc.title && <div className="text-[11px] text-slate-400">{acc.title}</div>}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="text-slate-600 font-mono text-[11px]">{acc.email}</span>
                       </td>
                       <td className="py-3 px-4">
                         {getRoleBadge(acc.role)}
                       </td>
-                      <td className="py-3 px-4 text-slate-600">
-                        {acc.institution || acc.department || '—'}
-                        {acc.laboratory && <span className="block text-[11px] text-slate-400">{acc.laboratory}</span>}
+                      <td className="py-3 px-4 text-slate-600 text-[11px]">
+                        {acc.createdAt ? new Date(acc.createdAt).toLocaleDateString('fr-FR') : '—'}
                       </td>
                       <td className="py-3 px-4">
                         {acc.isActive !== false ? (
@@ -422,41 +399,25 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({
                         )}
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <select
-                            value={acc.role}
-                            onChange={(e) => handleChangeRole(acc, e.target.value as AppRole)}
-                            className="text-[11px] px-2 py-1 border border-slate-200 rounded bg-white font-medium cursor-pointer"
-                          >
-                            <option value="candidate">Candidat</option>
-                            <option value="thesis_director">Directeur thèse</option>
-                            <option value="structure_director">Dir. structure</option>
-                            <option value="admin">Admin</option>
-                          </select>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleActive(acc)}
-                            className={`p-1.5 rounded border transition-colors cursor-pointer ${
-                              acc.isActive !== false
-                                ? 'text-amber-700 hover:bg-amber-50 border-amber-200'
-                                : 'text-emerald-700 hover:bg-emerald-50 border-emerald-200'
-                            }`}
-                            title={acc.isActive !== false ? 'Suspendre le compte' : 'Activer le compte'}
-                          >
-                            {acc.isActive !== false ? <X className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteAccount(acc)}
-                            className="p-1.5 rounded text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer"
-                            title="Supprimer définitivement"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedAccountForView(acc)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-purple-200 bg-purple-50 text-purple-800 hover:bg-purple-100 font-semibold text-[11px] transition-colors cursor-pointer"
+                          title="Consulter les détails du compte"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-purple-700" />
+                          <span>Consulter</span>
+                        </button>
                       </td>
                     </tr>
                   ))}
+                  {filteredAccounts.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-slate-400">
+                        Aucun compte trouvé correspondant aux critères de recherche.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -922,6 +883,110 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({
           currentUser={currentUser.name}
           language={language}
         />
+      )}
+
+      {/* Account Details Modal (Read-Only) */}
+      {selectedAccountForView && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-lg w-full p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-purple-50 text-purple-700">
+                  <Shield className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Fiche Détail Utilisateur</h3>
+                  <p className="text-[11px] text-slate-500 font-mono">ID : {selectedAccountForView.id}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedAccountForView(null)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer p-1 rounded-lg hover:bg-slate-100 transition-colors"
+                title="Fermer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Nom et Prénom</span>
+                  <span className="font-semibold text-slate-900 text-xs">{selectedAccountForView.name}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Adresse e-mail</span>
+                  <span className="font-mono text-slate-700 text-xs break-all">{selectedAccountForView.email}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">Rôle attribué</span>
+                  <div>{getRoleBadge(selectedAccountForView.role)}</div>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">État du compte</span>
+                  <div>
+                    {selectedAccountForView.isActive !== false ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Actif (Opérationnel)
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-rose-700 font-semibold bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                        <XCircle className="w-3 h-3" />
+                        Suspendu
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2 p-3 bg-white rounded-lg border border-slate-200">
+                <div className="flex justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-500">Titre / Grade académique :</span>
+                  <span className="font-medium text-slate-800">{selectedAccountForView.title || '—'}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-500">Établissement universitaire :</span>
+                  <span className="font-medium text-slate-800">{selectedAccountForView.institution || '—'}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-500">Structure / Laboratoire :</span>
+                  <span className="font-medium text-slate-800">{selectedAccountForView.laboratory || selectedAccountForView.department || '—'}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-500">Date de création :</span>
+                  <span className="font-medium text-slate-800">
+                    {selectedAccountForView.createdAt ? formatDateTime(selectedAccountForView.createdAt) : '—'}
+                  </span>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span className="text-slate-500">Dernière connexion :</span>
+                  <span className="font-medium text-slate-800">
+                    {selectedAccountForView.lastLoginAt ? formatDateTime(selectedAccountForView.lastLoginAt) : 'Jamais'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-600 flex items-start gap-2">
+                <Info className="w-4 h-4 text-purple-700 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Gouvernance USMBA :</strong> Ce compte est certifié. En application de la politique stricte Create/Read, la modification et la suppression de comptes existants sont désactivées.
+                </span>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setSelectedAccountForView(null)}
+                className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

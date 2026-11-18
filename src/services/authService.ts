@@ -420,44 +420,19 @@ export const AuthService = {
   },
 
   /**
-   * Update account role: restricted to Administrators and Structure Directors
+   * SECURITY ENFORCEMENT (USMBA Governance):
+   * Account role modification is strictly disabled.
+   * Administrators and all users have Create & Read privileges only (no Update / no Delete).
    */
   updateAccountRole(
-    actorUser: AppUser,
-    targetUserId: string,
-    newRole: AppRole
-  ): { success: boolean; error?: string } {
-    if (actorUser.role !== 'admin' && actorUser.role !== 'structure_director') {
-      return { success: false, error: 'Action non autorisée. Seul un administrateur peut modifier les rôles.' };
-    }
-
-    const accounts = this.getAccounts();
-    const target = accounts.find((a) => a.id === targetUserId);
-    if (!target) {
-      return { success: false, error: 'Utilisateur cible non trouvé.' };
-    }
-
-    const oldRole = target.role;
-    target.role = newRole;
-    this.saveAccounts(accounts);
-
-    try {
-      AuditLogService.log({
-        authorName: actorUser.name,
-        authorEmail: actorUser.email,
-        authorRole: actorUser.role,
-        action: `Modification du rôle de ${target.name}`,
-        category: 'user_management',
-        targetEntityId: target.id,
-        targetEntityType: 'AuthAccount',
-        oldValue: oldRole,
-        newValue: newRole,
-      });
-    } catch {
-      // ignore
-    }
-
-    return { success: true };
+    _actorUser: AppUser,
+    _targetUserId: string,
+    _newRole: AppRole
+  ): { success: boolean; error: string } {
+    return {
+      success: false,
+      error: 'Action non autorisée : la modification du rôle des comptes existants est strictement interdite (politique de gouvernance USMBA - droits Create/Read uniquement).',
+    };
   },
 
   /**
@@ -519,126 +494,48 @@ export const AuthService = {
   },
 
   /**
-   * Update account details by Administrator
+   * SECURITY ENFORCEMENT (USMBA Governance):
+   * Account modification by administrator is strictly disabled.
+   * Administrators have Create & Read privileges only (no Update / no Delete).
    */
   updateAccountByAdmin(
-    accountId: string,
-    updates: Partial<AuthAccount>,
-    adminUser: AppUser
-  ): { success: boolean; account?: AuthAccount; error?: string } {
-    if (adminUser.role !== 'admin') {
-      return { success: false, error: 'Action réservée aux administrateurs de la plateforme.' };
-    }
-    const accounts = this.getAccounts();
-    const idx = accounts.findIndex((a) => a.id === accountId);
-    if (idx === -1) {
-      return { success: false, error: 'Compte introuvable.' };
-    }
-    const current = accounts[idx];
-    const updated: AuthAccount = {
-      ...current,
-      ...updates,
-      id: current.id, // Immutable ID
+    _accountId: string,
+    _updates: Partial<AuthAccount>,
+    _adminUser: AppUser
+  ): { success: boolean; account?: AuthAccount; error: string } {
+    return {
+      success: false,
+      error: 'Action non autorisée : la modification des comptes existants est strictement interdite (politique de gouvernance USMBA - droits Create/Read uniquement).',
     };
-    accounts[idx] = updated;
-    this.saveAccounts(accounts);
-
-    try {
-      AuditLogService.log({
-        authorName: adminUser.name,
-        authorEmail: adminUser.email,
-        authorRole: adminUser.role,
-        action: `Mise à jour du profil de ${current.name}`,
-        category: 'user_management',
-        targetEntityId: current.id,
-        targetEntityType: 'AuthAccount',
-        comment: 'Profil ou privilèges mis à jour par l’administrateur',
-      });
-    } catch {
-      // ignore
-    }
-
-    return { success: true, account: updated };
   },
 
   /**
-   * Toggle account activation state
+   * SECURITY ENFORCEMENT (USMBA Governance):
+   * Account activation/suspension toggling is strictly disabled.
+   * Administrators have Create & Read privileges only (no Update / no Delete).
    */
   toggleAccountActive(
-    accountId: string, 
-    adminUser: AppUser
-  ): { success: boolean; newStatus?: boolean; error?: string } {
-    if (adminUser.role !== 'admin') {
-      return { success: false, error: 'Action réservée aux administrateurs.' };
-    }
-    if (adminUser.id === accountId) {
-      return { success: false, error: 'Vous ne pouvez pas désactiver votre propre compte administrateur.' };
-    }
-    const accounts = this.getAccounts();
-    const idx = accounts.findIndex((a) => a.id === accountId);
-    if (idx === -1) {
-      return { success: false, error: 'Compte introuvable.' };
-    }
-    const currentActive = accounts[idx].isActive !== false;
-    const nextStatus = !currentActive;
-    accounts[idx].isActive = nextStatus;
-    this.saveAccounts(accounts);
-
-    try {
-      AuditLogService.log({
-        authorName: adminUser.name,
-        authorEmail: adminUser.email,
-        authorRole: adminUser.role,
-        action: nextStatus ? `Réactivation du compte de ${accounts[idx].name}` : `Désactivation du compte de ${accounts[idx].name}`,
-        category: 'user_management',
-        targetEntityId: accounts[idx].id,
-        targetEntityType: 'AuthAccount',
-        oldValue: currentActive ? 'actif' : 'inactif',
-        newValue: nextStatus ? 'actif' : 'inactif',
-      });
-    } catch {
-      // ignore
-    }
-
-    return { success: true, newStatus: nextStatus };
+    _accountId: string, 
+    _adminUser: AppUser
+  ): { success: boolean; newStatus?: boolean; error: string } {
+    return {
+      success: false,
+      error: 'Action non autorisée : l’activation ou la suspension des comptes est strictement interdite (politique de gouvernance USMBA - droits Create/Read uniquement).',
+    };
   },
 
   /**
-   * Delete account by Administrator
+   * SECURITY ENFORCEMENT (USMBA Governance):
+   * Account deletion by administrator is strictly disabled.
+   * Administrators have Create & Read privileges only (no Update / no Delete).
    */
   deleteAccountByAdmin(
-    accountId: string, 
-    adminUser: AppUser
-  ): { success: boolean; error?: string } {
-    if (adminUser.role !== 'admin') {
-      return { success: false, error: 'Action réservée aux administrateurs.' };
-    }
-    if (adminUser.id === accountId) {
-      return { success: false, error: 'Vous ne pouvez pas supprimer votre propre compte administrateur.' };
-    }
-    const accounts = this.getAccounts();
-    const idx = accounts.findIndex((a) => a.id === accountId);
-    if (idx === -1) {
-      return { success: false, error: 'Compte introuvable.' };
-    }
-    const deletedName = accounts[idx].name;
-    accounts.splice(idx, 1);
-    this.saveAccounts(accounts);
-
-    try {
-      AuditLogService.log({
-        authorName: adminUser.name,
-        authorEmail: adminUser.email,
-        authorRole: adminUser.role,
-        action: `Suppression définitive du compte : ${deletedName}`,
-        category: 'user_management',
-        targetEntityId: accountId,
-        targetEntityType: 'AuthAccount',
-      });
-    } catch {
-      // ignore
-    }
-
-    return { success: true };
+    _accountId: string, 
+    _adminUser: AppUser
+  ): { success: boolean; error: string } {
+    return {
+      success: false,
+      error: 'Action non autorisée : la suppression définitive des comptes est strictement interdite (politique de gouvernance USMBA - droits Create/Read uniquement).',
+    };
   },
 };
